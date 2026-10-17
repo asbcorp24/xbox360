@@ -136,9 +136,9 @@ def gen_game(d):
 #define VH {vh}
 #define TILE_SIZE {int(d.get("tile_size",16))}
 #define ROOM_COUNT {len(rooms)}
-static const int room_world_width[ROOM_COUNT] = { {", ".join(str(int(r.get("world_width",vw))) for r in rooms)} };
-static const float room_camera_smoothing[ROOM_COUNT] = { {", ".join(cfloat(r.get("camera",{}).get("smoothing",0.18)) for r in rooms)} };
-static const int room_camera_deadzone[ROOM_COUNT] = { {", ".join(str(int(r.get("camera",{}).get("deadzone",48))) for r in rooms)} };
+static const int room_world_width[ROOM_COUNT] = {{ {", ".join(str(int(r.get("world_width",vw))) for r in rooms)} }};
+static const float room_camera_smoothing[ROOM_COUNT] = {{ {", ".join(cfloat(r.get("camera",{}).get("smoothing",0.18)) for r in rooms)} }};
+static const int room_camera_deadzone[ROOM_COUNT] = {{ {", ".join(str(int(r.get("camera",{}).get("deadzone",48))) for r in rooms)} }};
 #define PLAYER_W {int(p["size"][0])}
 #define PLAYER_H {int(p["size"][1])}
 #define PLAYER_START_ROOM {int(p.get("start_room",0))}
@@ -170,6 +170,7 @@ static const npc_t npcs[{count(len(npcs))}]={{\n{np}\n}};
 static trigger_t triggers[{count(len(triggers))}]={{\n{tr}\n}};
 static const door_t doors[{count(len(doors))}]={{\n{dr}\n}};
 static const teleport_t teleports[{count(len(teleports))}]={{\n{tp}\n}};
+static particle_emitter_t particle_emitters[{count(len(emitters))}]={{\n{pe}\n}};
 #endif
 """
 
