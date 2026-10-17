@@ -1,0 +1,74 @@
+name: First Release v0.5.0
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Release v0.5.0'
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+    env:
+      DEVKITXENON: /usr/local/xenon
+      PATH: /usr/local/xenon/bin:/usr/local/xenon/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install generator runtime
+        run: |
+          apt-get update
+          apt-get install -y python3
+
+      - name: Validate and generate project
+        run: |
+          python3 tools/xgm.py validate
+          python3 tools/xgm.py generate
+
+      - name: Build
+        run: make
+
+      - name: Verify outputs
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Create v0.5.0 release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.5.0
+          target_commitish: main
+          name: Xbox360 Game Maker v0.5.0
+          body: |
+            RPG/action layer release.
+
+            New in v0.5.0:
+            - inventory items and pickups
+            - keys required by doors
+            - player HP, damage and invulnerability frames
+            - consumables and healing
+            - weapons and melee attack
+            - enemy HP and damage
+            - walker, charger and tank enemy types
+            - branching dialogue nodes and choices
+            - choices can set flags or give items
+            - dialogue navigation on controller
+            - CLI commands for items, pickups, stats, dialogues and choices
+
+            Controls:
+            - A: jump
+            - B: interact / confirm dialogue
+            - X: attack
+            - Y: use consumable
+            - D-pad / left stick: movement / dialogue selection
+            - Start: restart
+          files: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
