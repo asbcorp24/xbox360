@@ -1,5 +1,5 @@
 {
-  "format": 6,
+  "format": 7,
   "name": "XGM All Features Demo",
   "virtual_resolution": [
     320,
@@ -65,6 +65,22 @@
       "kind": "weapon",
       "power": 2,
       "count": 1
+    },
+    {
+      "name": "pistol_ammo",
+      "kind": "ammo",
+      "power": 0,
+      "count": 24
+    },
+    {
+      "name": "demo_pistol",
+      "kind": "ranged",
+      "power": 2,
+      "count": 1,
+      "ammo": "pistol_ammo",
+      "fire_rate": 8,
+      "projectile_speed": 6,
+      "projectile_life": 75
     }
   ],
   "dialogues": [
@@ -373,6 +389,27 @@
           "x": 338,
           "y": 123,
           "qty": 1
+        },
+        {
+          "item": "pistol_ammo",
+          "x": 390,
+          "y": 148,
+          "qty": 12
+        }
+      ],
+      "particle_emitters": [
+        {
+          "type": "smoke",
+          "x": 150,
+          "y": 148,
+          "rate": 16,
+          "life": 45,
+          "speed": 0.5,
+          "spread": 0.6,
+          "gravity": -0.01,
+          "r": 170,
+          "g": 180,
+          "b": 190
         }
       ]
     },
@@ -533,6 +570,21 @@
           "y": 83,
           "qty": 1
         }
+      ],
+      "particle_emitters": [
+        {
+          "type": "spark",
+          "x": 245,
+          "y": 118,
+          "rate": 22,
+          "life": 20,
+          "speed": 1,
+          "spread": 1.2,
+          "gravity": 0.08,
+          "r": 255,
+          "g": 200,
+          "b": 90
+        }
       ]
     },
     {
@@ -676,7 +728,29 @@
           "target_y": 145
         }
       ],
-      "pickups": []
+      "pickups": [
+        {
+          "item": "pistol_ammo",
+          "x": 300,
+          "y": 118,
+          "qty": 18
+        }
+      ],
+      "particle_emitters": [
+        {
+          "type": "fire",
+          "x": 120,
+          "y": 151,
+          "rate": 10,
+          "life": 28,
+          "speed": 0.8,
+          "spread": 0.7,
+          "gravity": -0.015,
+          "r": 255,
+          "g": 110,
+          "b": 40
+        }
+      ]
     },
     {
       "name": "Rooftop Finale",
@@ -790,7 +864,22 @@
       "triggers": [],
       "doors": [],
       "teleports": [],
-      "pickups": []
+      "pickups": [],
+      "particle_emitters": [
+        {
+          "type": "dust",
+          "x": 455,
+          "y": 150,
+          "rate": 18,
+          "life": 32,
+          "speed": 0.45,
+          "spread": 0.8,
+          "gravity": 0.03,
+          "r": 180,
+          "g": 130,
+          "b": 100
+        }
+      ]
     }
   ]
 }
