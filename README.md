@@ -468,6 +468,7 @@ Do not edit generated files manually; run:
 - A: jump
 - B: interact with NPCs / doors / confirm dialogue
 - X: attack
+- Y: use first available consumable
 - D-pad / left stick: move and select dialogue answers
 - Start: restart
 - collect all crystals and reach the exit
