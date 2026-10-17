@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse, json, pathlib, shutil, struct, subprocess, wave, zlib
 from scriptgen import generate_scripts
 from rpggen import generate_rpg, enemy_type_id
+from visualgen import generate_visuals
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DEFAULT_PROJECT = ROOT / "project" / "game.json"
@@ -10,6 +11,7 @@ GAME_HEADER = ROOT / "source" / "generated_game.h"
 ASSET_HEADER = ROOT / "source" / "generated_assets.h"
 SCRIPT_HEADER = ROOT / "source" / "generated_scripts.h"
 RPG_HEADER = ROOT / "source" / "generated_rpg.h"
+VISUAL_HEADER = ROOT / "source" / "generated_visuals.h"
 
 def load(path):
     try: return json.loads(path.read_text(encoding="utf-8"))
@@ -33,7 +35,7 @@ def room(d,n):
 
 def validate(d):
     e=[]
-    if d.get("format") not in (2,3,4,5): e.append("format must be 2, 3, 4 or 5")
+    if d.get("format") not in (2,3,4,5,6): e.append("format must be 2, 3, 4, 5 or 6")
     vr=d.get("virtual_resolution")
     if not isinstance(vr,list) or len(vr)!=2 or not all(isinstance(x,int) and x>0 for x in vr): e.append("virtual_resolution must be [w,h]")
     p=d.get("player",{})
@@ -131,6 +133,7 @@ def gen_game(d):
 #define VH {vh}
 #define TILE_SIZE {int(d.get("tile_size",16))}
 #define ROOM_COUNT {len(rooms)}
+static const int room_world_width[ROOM_COUNT] = { {", ".join(str(int(r.get("world_width",vw))) for r in rooms)} };
 #define PLAYER_W {int(p["size"][0])}
 #define PLAYER_H {int(p["size"][1])}
 #define PLAYER_START_ROOM {int(p.get("start_room",0))}
@@ -191,7 +194,7 @@ def cmd_list(a):
             for j,x in enumerate(r[k]): print(f"  {k[:-1]} {j}: {x}")
 
 def mutate(a, fn):
-    path=pp(a); d=load(path); fn(d); d["format"]=5; save(path,d)
+    path=pp(a); d=load(path); fn(d); d["format"]=6; save(path,d)
 
 def cmd_add_room(a): mutate(a,lambda d:d["rooms"].append({"name":a.name,"platforms":[{"x":0,"y":160,"w":320,"h":20}],"crystals":[],"tiles":[],"enemies":[],"npcs":[],"triggers":[],"doors":[],"teleports":[]}))
 def cmd_add_platform(a): mutate(a,lambda d:room(d,a.room)["platforms"].append({"x":a.x,"y":a.y,"w":a.w,"h":a.h}))
@@ -219,7 +222,8 @@ def cmd_generate(a):
     ASSET_HEADER.write_text(gen_assets(d),encoding="utf-8")
     SCRIPT_HEADER.write_text(generate_scripts(d),encoding="utf-8")
     RPG_HEADER.write_text(generate_rpg(d),encoding="utf-8")
-    print(GAME_HEADER); print(ASSET_HEADER); print(SCRIPT_HEADER); print(RPG_HEADER)
+    VISUAL_HEADER.write_text(generate_visuals(d,ROOT,decode_png),encoding="utf-8")
+    print(GAME_HEADER); print(ASSET_HEADER); print(SCRIPT_HEADER); print(RPG_HEADER); print(VISUAL_HEADER)
 
 def cmd_set_flag(a):
     mutate(a, lambda d: d.setdefault("flags",{}).__setitem__(a.name,a.value))
@@ -294,6 +298,38 @@ def cmd_add_choice(a):
         node.setdefault("choices",[]).append(ch)
     mutate(a,f)
 
+
+def cmd_set_camera(a):
+    def f(d):
+        r=room(d,a.room)
+        cam=r.setdefault("camera",{})
+        if a.world_width is not None: r["world_width"]=a.world_width
+        if a.smoothing is not None: cam["smoothing"]=a.smoothing
+        if a.deadzone is not None: cam["deadzone"]=a.deadzone
+    mutate(a,f)
+
+def _visual_layer(a, kind):
+    def f(d):
+        r=room(d,a.room)
+        v=r.setdefault("visuals",{})
+        if kind=="background":
+            v["background"]=[{
+                "image":a.image,"speed_x":a.speed_x,"speed_y":a.speed_y,
+                "repeat_x":a.repeat_x,"repeat_y":a.repeat_y,
+                "offset_x":a.offset_x,"offset_y":a.offset_y,"order":a.order
+            }]
+        else:
+            v.setdefault(kind,[]).append({
+                "image":a.image,"speed_x":a.speed_x,"speed_y":a.speed_y,
+                "repeat_x":a.repeat_x,"repeat_y":a.repeat_y,
+                "offset_x":a.offset_x,"offset_y":a.offset_y,"order":a.order
+            })
+    mutate(a,f)
+
+def cmd_set_background(a): _visual_layer(a,"background")
+def cmd_add_parallax(a): _visual_layer(a,"parallax")
+def cmd_add_foreground(a): _visual_layer(a,"foreground")
+
 def cmd_build(a):
     cmd_generate(a)
     if a.docker:
@@ -330,6 +366,16 @@ def parser():
     q=s.add_parser("add-pickup"); q.add_argument("room",type=int); q.add_argument("item"); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--qty",type=int,default=1); q.set_defaults(func=cmd_add_pickup)
     q=s.add_parser("add-dialog"); q.add_argument("id"); q.add_argument("text"); q.set_defaults(func=cmd_add_dialog)
     q=s.add_parser("add-choice"); q.add_argument("dialog"); q.add_argument("text"); q.add_argument("--next"); q.add_argument("--set-flag"); q.add_argument("--give-item"); q.set_defaults(func=cmd_add_choice)
+
+    def add_visual_args(q, default_speed):
+        q.add_argument("room",type=int); q.add_argument("image")
+        q.add_argument("--speed-x",type=float,default=default_speed); q.add_argument("--speed-y",type=float,default=0.0)
+        q.add_argument("--repeat-x",action="store_true"); q.add_argument("--repeat-y",action="store_true")
+        q.add_argument("--offset-x",type=int,default=0); q.add_argument("--offset-y",type=int,default=0); q.add_argument("--order",type=int,default=0)
+    q=s.add_parser("set-camera"); q.add_argument("room",type=int); q.add_argument("--world-width",type=int); q.add_argument("--smoothing",type=float); q.add_argument("--deadzone",type=int); q.set_defaults(func=cmd_set_camera)
+    q=s.add_parser("set-background"); add_visual_args(q,0.0); q.set_defaults(func=cmd_set_background)
+    q=s.add_parser("add-parallax"); add_visual_args(q,0.25); q.set_defaults(func=cmd_add_parallax)
+    q=s.add_parser("add-foreground"); add_visual_args(q,1.15); q.set_defaults(func=cmd_add_foreground)
     q=s.add_parser("build"); q.add_argument("--docker",action="store_true"); q.set_defaults(func=cmd_build)
     return p
 
