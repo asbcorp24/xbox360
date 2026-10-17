@@ -230,6 +230,122 @@ The demo project includes examples of every new entity.
 - one-shot triggers remember that they already fired
 - collected crystals remain collected when changing rooms
 
+
+
+## Scripting layer
+
+Xbox360 Game Maker now has a small data-driven scripting VM. Scripts are stored in `project/game.json`, compiled by `xgm generate`, and executed by the Xbox 360 runtime.
+
+### Flags and variables
+
+Create or change a flag:
+
+```bash
+./xgm set-flag quest_started 1
+```
+
+Create or change a numeric variable:
+
+```bash
+./xgm set-var score 0
+```
+
+### Events
+
+Supported events:
+
+```text
+on_enter
+on_interact
+on_collect
+```
+
+`room=-1` means any room. `target=-1` means any matching entity.
+
+Example: show a dialog when room 1 is entered:
+
+```bash
+./xgm add-script on_enter --room 1 --once \
+  --do "dialog:Welcome to room 1"
+```
+
+Example: NPC 0 in room 0 starts a quest and increments a variable:
+
+```bash
+./xgm add-script on_interact --room 0 --target 0 \
+  --do set_flag:quest_started:1 \
+  --do add_var:talks:1 \
+  --do "dialog:Go to the roof"
+```
+
+Example: every collected crystal increases score:
+
+```bash
+./xgm add-script on_collect \
+  --do add_var:score:1
+```
+
+### Conditions
+
+A script can require a flag:
+
+```bash
+./xgm add-script on_interact --room 0 --target 0 \
+  --if-flag quest_started=1 \
+  --do "dialog:The quest is already active"
+```
+
+Or a variable:
+
+```bash
+./xgm add-script on_enter --room 2 \
+  --if-var score=6 \
+  --do "dialog:You collected everything"
+```
+
+### Script actions
+
+Supported actions:
+
+```text
+set_flag:name:value
+set_var:name:value
+add_var:name:value
+open_door:room:local_index
+spawn_enemy:room:local_index
+change_room:room:x:y
+dialog:text
+```
+
+Open a script-locked door:
+
+```bash
+./xgm add-door 1 294 140 2 18 145 --locked
+
+./xgm add-script on_collect --room 1 --target 1 --once \
+  --do open_door:1:0 \
+  --do "dialog:The door is now open"
+```
+
+Spawn an initially inactive enemy:
+
+```bash
+./xgm add-enemy 2 180 151 --left 170 --right 230 --inactive
+
+./xgm add-script on_enter --room 2 --once \
+  --do spawn_enemy:2:0
+```
+
+Change room from a script:
+
+```bash
+./xgm add-script on_interact --room 0 --target 0 \
+  --if-flag quest_started=1 \
+  --do change_room:2:20:145
+```
+
+The scripting layer is compiled into static C tables. The Xbox 360 build does not parse JSON at runtime.
+
 ## Project data
 
 Main project file:
