@@ -1,5 +1,5 @@
 {
-  "format": 2,
+  "format": 3,
   "name": "Pixel Run 360",
   "virtual_resolution": [
     320,
@@ -73,7 +73,62 @@
           "x": 149,
           "y": 93
         }
-      ]
+      ],
+      "tiles": [
+        {
+          "x": 0,
+          "y": 9,
+          "tile": 1,
+          "solid": true
+        },
+        {
+          "x": 1,
+          "y": 9,
+          "tile": 1,
+          "solid": true
+        },
+        {
+          "x": 2,
+          "y": 9,
+          "tile": 1,
+          "solid": true
+        },
+        {
+          "x": 10,
+          "y": 8,
+          "tile": 2,
+          "solid": false
+        },
+        {
+          "x": 11,
+          "y": 8,
+          "tile": 2,
+          "solid": false
+        }
+      ],
+      "enemies": [
+        {
+          "x": 190,
+          "y": 151,
+          "w": 8,
+          "h": 8,
+          "left": 180,
+          "right": 230,
+          "speed": 0.45
+        }
+      ],
+      "npcs": [
+        {
+          "x": 102,
+          "y": 148,
+          "w": 8,
+          "h": 12,
+          "message": "Collect every crystal!"
+        }
+      ],
+      "triggers": [],
+      "doors": [],
+      "teleports": []
     },
     {
       "name": "Midnight Roofs",
@@ -112,7 +167,36 @@
           "x": 141,
           "y": 81
         }
-      ]
+      ],
+      "tiles": [],
+      "enemies": [],
+      "npcs": [],
+      "triggers": [
+        {
+          "x": 180,
+          "y": 120,
+          "w": 24,
+          "h": 40,
+          "action": "tone",
+          "target_room": -1,
+          "target_x": 0,
+          "target_y": 0,
+          "once": true
+        }
+      ],
+      "doors": [
+        {
+          "x": 294,
+          "y": 140,
+          "w": 12,
+          "h": 20,
+          "target_room": 2,
+          "target_x": 18,
+          "target_y": 145,
+          "requires_all_crystals": false
+        }
+      ],
+      "teleports": []
     },
     {
       "name": "Exit",
@@ -151,7 +235,24 @@
           "x": 169,
           "y": 90
         }
+      ],
+      "tiles": [],
+      "enemies": [],
+      "npcs": [],
+      "triggers": [],
+      "doors": [],
+      "teleports": [
+        {
+          "x": 15,
+          "y": 148,
+          "w": 12,
+          "h": 12,
+          "target_room": 0,
+          "target_x": 280,
+          "target_y": 145
+        }
       ]
     }
-  ]
+  ],
+  "tile_size": 16
 }
