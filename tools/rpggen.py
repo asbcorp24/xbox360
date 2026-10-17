@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-KINDS={"key":1,"consumable":2,"weapon":3}
+KINDS={"key":1,"consumable":2,"weapon":3,"ammo":4,"ranged":5}
 ENEMY_TYPES={"walker":1,"charger":2,"tank":3}
 
 def esc(s):
@@ -32,8 +32,8 @@ def generate_rpg(d):
             choices.append((c.get("text","..."),nxt,sf_name,sf_val,gi,gq))
         nodes.append((n.get("id",""),n.get("text",""),start,len(choices)-start))
     def arr(lines,fallback): return ",\n".join(lines) if lines else fallback
-    il=arr([f'    {{ "{esc(x["name"])}", {KINDS[x.get("kind","consumable")]}, {int(x.get("power",0))}, {int(x.get("count",0))}, {int(x.get("count",0))} }}' for x in items],
-           '    { "", 0, 0, 0, 0 }')
+    il=arr([f'    {{ "{esc(x["name"])}", {KINDS[x.get("kind","consumable")]}, {int(x.get("power",0))}, {int(x.get("count",0))}, {int(x.get("count",0))}, {item_index.get(x.get("ammo"),-1)}, {int(x.get("fire_rate",10))}, {float(x.get("projectile_speed",5.0)):.4f}f, {int(x.get("projectile_life",70))} }}' for x in items],
+           '    { "", 0, 0, 0, 0, -1, 10, 5.0f, 70 }')
     pl=arr([f'    {{ {ri}, {int(x["x"])}, {int(x["y"])}, {item_index.get(x["item"],-1)}, {int(x.get("qty",1))}, 0 }}' for ri,x in pickups],
            '    { 0,-1000,-1000,-1,0,1 }')
     nl=arr([f'    {{ "{esc(i)}", "{esc(t)}", {s}, {n} }}' for i,t,s,n in nodes],
