@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 KINDS={"key":1,"consumable":2,"weapon":3,"ammo":4,"ranged":5}
-ENEMY_TYPES={"walker":1,"charger":2,"tank":3}
+ENEMY_TYPES={"walker":1,"charger":2,"tank":3,"shiv":4,"brute":5,"hitman":6,"merc":7,"bully":8,"bouncer":9,"boss":10}
 
 def esc(s):
     return str(s).replace("\\","\\\\").replace('"','\\"')
