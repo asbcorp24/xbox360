@@ -65,6 +65,9 @@ static int g_shake_x=0,g_shake_y=0;
 #define MAX_PARTICLES 128
 static projectile_t g_projectiles[MAX_PROJECTILES];
 static particle_t g_particles[MAX_PARTICLES];
+enum { GS_BOOT=0, GS_TITLE=1, GS_GAME=2, GS_PAUSE=3, GS_GAME_OVER=4, GS_ENDING=5, GS_CREDITS=6 };
+static int g_state=GS_BOOT;
+static int g_state_timer=0;
 
 static int iroundf_local(float v){ return (int)(v+(v>=0.0f?0.5f:-0.5f)); }
 static int overlaps(float ax,float ay,float aw,float ah,float bx,float by,float bw,float bh){
@@ -543,6 +546,49 @@ static void draw_room(const player_t *p,int facing,int won){
     if(won){ draw_rect(88,58,144,42,fb2d_rgb(8,10,22)); draw_rect(92,62,136,34,fb2d_rgb(47,39,72)); }
 }
 
+static void draw_fullscreen_rgba(const unsigned char *rgba,int w,int h){
+    if(!rgba)return;
+    int old=g_world_mode; g_world_mode=0;
+    for(int y=0;y<h&&y<VH;++y) for(int x=0;x<w&&x<VW;++x){
+        int i=(y*w+x)*4; if(rgba[i+3]<16)continue;
+        draw_pixel(x,y,fb2d_rgb(rgba[i],rgba[i+1],rgba[i+2]));
+    }
+    g_world_mode=old;
+}
+static void draw_flow_screen(int state,const player_t *p,int facing,int won){
+    if(state==GS_PAUSE){
+        draw_room(p,facing,won);
+        draw_rect(74,50,172,72,fb2d_rgb(8,10,22));
+        draw_rect(78,54,164,64,fb2d_rgb(30,30,54));
+        draw_text3x5(132,66,"PAUSED",fb2d_rgb(235,245,255),20);
+        draw_text3x5(101,83,"START/A - RESUME",fb2d_rgb(125,220,255),40);
+        draw_text3x5(101,95,"B - TITLE",fb2d_rgb(220,110,170),40);
+        return;
+    }
+    fb2d_clear(&g_fb,fb2d_rgb(10,12,28));
+    if(state==GS_BOOT && BOOT_SCREEN_HAS_IMAGE) draw_fullscreen_rgba(boot_screen_rgba,BOOT_SCREEN_W,BOOT_SCREEN_H);
+    else if(TITLE_SCREEN_HAS_IMAGE) draw_fullscreen_rgba(title_screen_rgba,TITLE_SCREEN_W,TITLE_SCREEN_H);
+
+    if(state==GS_TITLE){
+        draw_text3x5(112,112,TITLE_TEXT,fb2d_rgb(235,245,255),40);
+        if((g_frame_counter/30)&1) draw_text3x5(112,128,TITLE_SUBTEXT,fb2d_rgb(125,220,255),50);
+    }else if(state==GS_GAME_OVER){
+        draw_rect(76,52,168,72,fb2d_rgb(8,10,22));
+        draw_text3x5(118,66,GAME_OVER_TEXT,fb2d_rgb(255,110,130),40);
+        draw_text3x5(98,86,"A - RETRY",fb2d_rgb(235,245,255),30);
+        draw_text3x5(98,98,"B - TITLE",fb2d_rgb(125,220,255),30);
+    }else if(state==GS_ENDING){
+        draw_rect(70,50,180,74,fb2d_rgb(8,10,22));
+        draw_text3x5(92,66,ENDING_TEXT,fb2d_rgb(120,255,180),50);
+        draw_text3x5(102,96,"PRESS A",fb2d_rgb(235,245,255),20);
+    }else if(state==GS_CREDITS){
+        draw_rect(58,42,204,92,fb2d_rgb(8,10,22));
+        draw_text3x5(125,58,"CREDITS",fb2d_rgb(235,245,255),20);
+        draw_text3x5(76,78,CREDITS_TEXT,fb2d_rgb(125,220,255),80);
+        draw_text3x5(105,112,"A/B - TITLE",fb2d_rgb(220,110,170),30);
+    }
+}
+
 static void respawn(player_t *p){
     g_room=g_checkpoint_room; p->x=g_checkpoint_x; p->y=g_checkpoint_y; p->vx=p->vy=0; p->on_ground=0; g_teleport_cooldown=20;
     g_camera_x=p->x-(VW/2.0f); if(g_camera_x<0)g_camera_x=0;
@@ -587,9 +633,9 @@ static void update_player(player_t *p){
 }
 
 static void damage_player(player_t *p,int dmg){
-    if(p->invuln>0)return;
+    if(p->invuln>0||g_state!=GS_GAME)return;
     p->hp-=dmg; p->invuln=45; snd_hit(); camera_shake(3,12);
-    if(p->hp<=0){ p->hp=p->max_hp; respawn(p); }
+    if(p->hp<=0){ p->hp=0; p->vx=p->vy=0; g_state=GS_GAME_OVER; g_state_timer=0; }
 }
 static void update_enemies(player_t *p){
     for(int i=0;i<ENEMY_COUNT;++i){
@@ -650,39 +696,73 @@ int main(void){
     g_off_x=(g_fb.width-VW*g_scale)/2;g_off_y=(g_fb.height-VH*g_scale)/2;
     printf("%s | rooms=%d | entities E%d N%d T%d D%d P%d\n",GAME_NAME,ROOM_COUNT,ENEMY_COUNT,NPC_COUNT,TRIGGER_COUNT,DOOR_COUNT,TELEPORT_COUNT);
 
-    player_t player;int facing,won;reset_game(&player,&facing,&won);process_room_enter(&player);
+    player_t player;int facing,won;reset_game(&player,&facing,&won);
+    g_state=GS_BOOT;g_state_timer=0;
     struct controller_data_s prev;memset(&prev,0,sizeof(prev));
+
     for(;;){
         struct controller_data_s pad;memset(&pad,0,sizeof(pad));
-        if(get_controller_data(&pad,0)){
-            int left=pad.left||pad.s1_x<-9000,right=pad.right||pad.s1_x>9000;
-            if(g_active_dialog>=0){
-                const dialog_node_t *dn=&dialog_nodes[g_active_dialog];
-                if((pad.up&&!prev.up)||(pad.s1_y>9000&&prev.s1_y<=9000)){ if(dn->choice_count>0) g_dialog_choice=(g_dialog_choice+dn->choice_count-1)%dn->choice_count; }
-                if((pad.down&&!prev.down)||(pad.s1_y<-9000&&prev.s1_y>=-9000)){ if(dn->choice_count>0) g_dialog_choice=(g_dialog_choice+1)%dn->choice_count; }
-                if((pad.b&&!prev.b)||(pad.a&&!prev.a)) choose_dialog(&player);
-            } else if(!won){
-                if(left&&!right){player.vx=-PLAYER_SPEED;facing=-1;} else if(right&&!left){player.vx=PLAYER_SPEED;facing=1;} else {player.vx*=.55f;if(player.vx>-.08f&&player.vx<.08f)player.vx=0;}
-                if(pad.a&&!prev.a&&player.on_ground){player.vy=-PLAYER_JUMP_SPEED;player.on_ground=0;snd_jump();}
-                if(pad.x&&!prev.x) player_attack(&player,facing);
-                if(pad.rb||pad.rt>32) fire_gun(&player,facing);
-                if(pad.y&&!prev.y) use_consumable(&player);
-                update_player(&player); update_enemies(&player); update_projectiles(); update_particles();
-                for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].room==g_room&&!crystals[i].collected&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){crystals[i].collected=1;snd_collect();run_script_event(EVT_ON_COLLECT,g_room,local_crystal_index(i),&player);}
-                for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,pickups[i].x,pickups[i].y,6,6)){pickups[i].collected=1;inventory_add(pickups[i].item_index,pickups[i].qty);snd_collect();}
-                process_triggers(&player);process_teleports(&player);
-                if(pad.b&&!prev.b) interact(&player);
-                process_room_enter(&player);
-                if(g_room==EXIT_ROOM&&total_collected()==CRYSTAL_COUNT&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,EXIT_X-2,EXIT_Y-3,EXIT_W+4,EXIT_H+3)){won=1;player.vx=player.vy=0;}
+        int have_pad=get_controller_data(&pad,0);
+        int press_a=have_pad&&pad.a&&!prev.a;
+        int press_b=have_pad&&pad.b&&!prev.b;
+        int press_start=have_pad&&pad.start&&!prev.start;
+
+        if(g_state==GS_BOOT){
+            ++g_state_timer;
+            if(press_a||press_start||g_state_timer>=BOOT_FRAMES){g_state=GS_TITLE;g_state_timer=0;}
+        }else if(g_state==GS_TITLE){
+            if(press_a||press_start){
+                reset_game(&player,&facing,&won);process_room_enter(&player);
+                g_state=GS_GAME;g_state_timer=0;
             }
-            if(pad.start&&!prev.start)reset_game(&player,&facing,&won);
-            if(won&&pad.a&&!prev.a)reset_game(&player,&facing,&won);
-            prev=pad;
+        }else if(g_state==GS_PAUSE){
+            if(press_start||press_a){g_state=GS_GAME;}
+            else if(press_b){g_state=GS_TITLE;g_state_timer=0;}
+        }else if(g_state==GS_GAME_OVER){
+            if(press_a){reset_game(&player,&facing,&won);process_room_enter(&player);g_state=GS_GAME;}
+            else if(press_b){g_state=GS_TITLE;g_state_timer=0;}
+        }else if(g_state==GS_ENDING){
+            if(press_a||press_start){g_state=GS_CREDITS;g_state_timer=0;}
+        }else if(g_state==GS_CREDITS){
+            if(press_a||press_b||press_start){g_state=GS_TITLE;g_state_timer=0;}
+        }else if(g_state==GS_GAME && have_pad){
+            int left=pad.left||pad.s1_x<-9000,right=pad.right||pad.s1_x>9000;
+            if(press_start){
+                g_state=GS_PAUSE;
+            }else if(g_active_dialog>=0){
+                const dialog_node_t *dn=&dialog_nodes[g_active_dialog];
+                if((pad.up&&!prev.up)||(pad.s1_y>9000&&prev.s1_y<=9000)){if(dn->choice_count>0)g_dialog_choice=(g_dialog_choice+dn->choice_count-1)%dn->choice_count;}
+                if((pad.down&&!prev.down)||(pad.s1_y<-9000&&prev.s1_y>=-9000)){if(dn->choice_count>0)g_dialog_choice=(g_dialog_choice+1)%dn->choice_count;}
+                if(press_b||press_a)choose_dialog(&player);
+            }else{
+                if(left&&!right){player.vx=-PLAYER_SPEED;facing=-1;}else if(right&&!left){player.vx=PLAYER_SPEED;facing=1;}else{player.vx*=.55f;if(player.vx>-.08f&&player.vx<.08f)player.vx=0;}
+                if(press_a&&player.on_ground){player.vy=-PLAYER_JUMP_SPEED;player.on_ground=0;snd_jump();}
+                if(pad.x&&!prev.x)player_attack(&player,facing);
+                if(pad.rb||pad.rt>32)fire_gun(&player,facing);
+                if(pad.y&&!prev.y)use_consumable(&player);
+                update_player(&player);update_enemies(&player);update_projectiles();update_particles();
+                for(int i=0;i<CRYSTAL_COUNT;++i)if(crystals[i].room==g_room&&!crystals[i].collected&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){crystals[i].collected=1;snd_collect();run_script_event(EVT_ON_COLLECT,g_room,local_crystal_index(i),&player);}
+                for(int i=0;i<RPG_PICKUP_COUNT;++i)if(!pickups[i].collected&&pickups[i].room==g_room&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,pickups[i].x,pickups[i].y,6,6)){pickups[i].collected=1;inventory_add(pickups[i].item_index,pickups[i].qty);snd_collect();}
+                process_triggers(&player);process_teleports(&player);
+                if(press_b)interact(&player);
+                process_room_enter(&player);
+                if(g_room==EXIT_ROOM&&total_collected()==CRYSTAL_COUNT&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,EXIT_X-2,EXIT_Y-3,EXIT_W+4,EXIT_H+3)){
+                    won=1;player.vx=player.vy=0;g_state=GS_ENDING;g_state_timer=0;
+                }
+            }
         }
-        if(g_npc_flash>0)--g_npc_flash; if(g_dialog_timer>0&&g_active_dialog<0)--g_dialog_timer;
-        if(player.invuln>0)--player.invuln; if(player.attack_cd>0)--player.attack_cd; if(player.attack_frames>0)--player.attack_frames; if(player.fire_cd>0)--player.fire_cd;
-        update_camera(&player);
-        draw_room(&player,facing,won);fb2d_present(&g_fb);usb_do_poll();++g_frame_counter;
+
+        if(have_pad)prev=pad;
+        if(g_state==GS_GAME){
+            if(g_npc_flash>0)--g_npc_flash;if(g_dialog_timer>0&&g_active_dialog<0)--g_dialog_timer;
+            if(player.invuln>0)--player.invuln;if(player.attack_cd>0)--player.attack_cd;if(player.attack_frames>0)--player.attack_frames;if(player.fire_cd>0)--player.fire_cd;
+            update_camera(&player);
+            draw_room(&player,facing,won);
+        }else{
+            draw_flow_screen(g_state,&player,facing,won);
+        }
+        fb2d_present(&g_fb);usb_do_poll();++g_frame_counter;
     }
     return 0;
 }
+
