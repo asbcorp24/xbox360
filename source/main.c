@@ -517,7 +517,7 @@ static void draw_room(const player_t *p,int facing,int won){
 
     int frame=0;
     if(p->attack_frames>0 && PLAYER_FRAME_COUNT>4) frame=4;
-    else if(p->fire_cd>0 && p->fire_cd<=3 && PLAYER_FRAME_COUNT>5) frame=5;
+    else if(p->fire_cd>0 && p->fire_cd<=3 && PLAYER_FRAME_COUNT>7) frame=7;
     else if(!p->on_ground) frame=3;
     else if(p->vx>.15f||p->vx<-.15f) frame=1+((g_frame_counter/8)&1);
     int player_dx=iroundf_local(p->x)+(PLAYER_W-PLAYER_FRAME_W)/2;
