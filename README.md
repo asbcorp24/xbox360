@@ -441,6 +441,79 @@ Attach a dialogue to an NPC when creating it:
 
 The dialogue UI is rendered directly by the Xbox 360 runtime. Choices can branch to other nodes, set flags, or give inventory items.
 
+
+
+## Camera2D, backgrounds and parallax
+
+Each room can have its own camera width, smoothing and dead zone.
+
+Example:
+
+```bash
+./xgm set-camera 0 --world-width 480 --smoothing 0.18 --deadzone 48
+```
+
+Set the main background:
+
+```bash
+./xgm set-background 0 assets/bg_sky.png \
+  --speed-x 0.0 \
+  --repeat-x \
+  --repeat-y
+```
+
+Add a far parallax layer:
+
+```bash
+./xgm add-parallax 0 assets/bg_city_far.png \
+  --speed-x 0.18 \
+  --offset-y 90 \
+  --repeat-x
+```
+
+Add a nearer layer:
+
+```bash
+./xgm add-parallax 0 assets/bg_city_near.png \
+  --speed-x 0.45 \
+  --offset-y 95 \
+  --repeat-x
+```
+
+Add foreground above the player:
+
+```bash
+./xgm add-foreground 0 assets/fg_fence.png \
+  --speed-x 1.12 \
+  --offset-y 116 \
+  --repeat-x
+```
+
+Layer model:
+
+```text
+background      speed 0.00
+far parallax    speed 0.18
+near parallax   speed 0.45
+gameplay        speed 1.00
+foreground      speed 1.12
+HUD             screen fixed
+```
+
+The demo uses ordinary PNG files from `assets/`. They are compiled by `xgm generate` into `generated_visuals.h`, so the Xbox 360 runtime does not need to decode PNG files.
+
+Camera features currently include:
+
+- horizontal player follow
+- configurable dead zone
+- smoothing
+- per-room world width
+- camera clamping
+- parallax offsets
+- foreground layers
+- screen shake on damage and melee attack
+- HUD independent from camera/shake
+
 ## Project data
 
 Main project file:
