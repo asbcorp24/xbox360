@@ -608,6 +608,66 @@ fire
 
 The Xbox runtime uses fixed pools (32 projectiles and 128 particles) to avoid per-frame heap allocation.
 
+
+
+## PNG showcase demo
+
+A separate visual showcase uses real PNG sprite sheets and layered PNG backgrounds:
+
+```text
+demos/png_showcase/game.json
+```
+
+Windows:
+
+```bat
+showcase-play.bat
+```
+
+Build for Xbox 360:
+
+```bat
+showcase-build.bat
+```
+
+Linux / MSYS2:
+
+```bash
+./showcase-play.sh
+./showcase-build.sh
+```
+
+PNG assets:
+
+```text
+assets/showcase/player_showcase.png
+assets/showcase/enemy_walker.png
+assets/showcase/enemy_charger.png
+assets/showcase/enemy_tank.png
+assets/showcase/npc_guide.png
+assets/showcase/bg_sky.png
+assets/showcase/bg_mountains.png
+assets/showcase/bg_city.png
+assets/showcase/fg_fence.png
+```
+
+The showcase uses:
+
+- animated player PNG sprite sheet
+- animated walker / charger / tank PNG sprite sheets
+- PNG NPC sprite
+- PNG sky background
+- PNG mountain parallax
+- PNG city parallax
+- PNG foreground fence
+- camera movement and parallax
+- shooting and melee
+- particles
+- pickups / keys / doors
+- dialogues / scripts / triggers / teleports
+
+Projects that do not define enemy/NPC PNG sprites keep the old procedural fallback rendering.
+
 ## All-features demo game
 
 A separate demo project is included specifically to test the whole constructor without touching the main project:
