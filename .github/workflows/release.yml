@@ -1,0 +1,40 @@
+name: Release Xbox 360 Homebrew
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+    env:
+      DEVKITXENON: /usr/local/xenon
+      PATH: /usr/local/xenon/bin:/usr/local/xenon/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: make
+
+      - name: Verify outputs
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
+          generate_release_notes: true
+          name: Pixel Run 360 ${{ github.ref_name }}
