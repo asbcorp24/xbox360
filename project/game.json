@@ -1,5 +1,5 @@
 {
-  "format": 4,
+  "format": 5,
   "name": "Pixel Run 360",
   "virtual_resolution": [
     320,
@@ -18,7 +18,9 @@
     "speed": 1.25,
     "jump_speed": 4.35,
     "gravity": 0.24,
-    "max_fall_speed": 5
+    "max_fall_speed": 5,
+    "health": 5,
+    "damage": 1
   },
   "exit": {
     "room": 2,
@@ -114,7 +116,10 @@
           "h": 8,
           "left": 180,
           "right": 230,
-          "speed": 0.45
+          "speed": 0.45,
+          "type": "walker",
+          "hp": 2,
+          "damage": 1
         }
       ],
       "npcs": [
@@ -123,12 +128,21 @@
           "y": 148,
           "w": 8,
           "h": 12,
-          "message": "Collect every crystal!"
+          "message": "Collect every crystal!",
+          "dialogue": "guide_start"
         }
       ],
       "triggers": [],
       "doors": [],
-      "teleports": []
+      "teleports": [],
+      "pickups": [
+        {
+          "item": "medkit",
+          "x": 210,
+          "y": 148,
+          "qty": 1
+        }
+      ]
     },
     {
       "name": "Midnight Roofs",
@@ -169,7 +183,21 @@
         }
       ],
       "tiles": [],
-      "enemies": [],
+      "enemies": [
+        {
+          "x": 160,
+          "y": 84,
+          "w": 8,
+          "h": 8,
+          "left": 145,
+          "right": 200,
+          "speed": 0.7,
+          "spawned": true,
+          "type": "charger",
+          "hp": 3,
+          "damage": 1
+        }
+      ],
       "npcs": [],
       "triggers": [
         {
@@ -194,10 +222,19 @@
           "target_x": 18,
           "target_y": 145,
           "requires_all_crystals": false,
-          "locked": true
+          "locked": true,
+          "key": "roof_key"
         }
       ],
-      "teleports": []
+      "teleports": [],
+      "pickups": [
+        {
+          "item": "roof_key",
+          "x": 110,
+          "y": 82,
+          "qty": 1
+        }
+      ]
     },
     {
       "name": "Exit",
@@ -247,7 +284,10 @@
           "left": 190,
           "right": 250,
           "speed": 0.5,
-          "spawned": false
+          "spawned": false,
+          "type": "tank",
+          "hp": 5,
+          "damage": 2
         }
       ],
       "npcs": [],
@@ -263,13 +303,15 @@
           "target_x": 280,
           "target_y": 145
         }
-      ]
+      ],
+      "pickups": []
     }
   ],
   "tile_size": 16,
   "flags": {
     "quest_started": 0,
-    "gate_open": 0
+    "gate_open": 0,
+    "accepted_help": 0
   },
   "variables": {
     "score": 0,
@@ -364,6 +406,68 @@
         {
           "cmd": "dialog",
           "text": "Something moved in the dark."
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "name": "roof_key",
+      "kind": "key",
+      "power": 0,
+      "count": 0
+    },
+    {
+      "name": "medkit",
+      "kind": "consumable",
+      "power": 2,
+      "count": 0
+    },
+    {
+      "name": "rusty_sword",
+      "kind": "weapon",
+      "power": 2,
+      "count": 1
+    }
+  ],
+  "dialogues": [
+    {
+      "id": "guide_start",
+      "text": "Do you want the roof key?",
+      "choices": [
+        {
+          "text": "Yes, help me.",
+          "next": "guide_help",
+          "set_flag": {
+            "name": "accepted_help",
+            "value": 1
+          }
+        },
+        {
+          "text": "No, I can manage.",
+          "next": "guide_no"
+        }
+      ]
+    },
+    {
+      "id": "guide_help",
+      "text": "Find the key upstairs. Take this medkit.",
+      "choices": [
+        {
+          "text": "Thanks.",
+          "give_item": {
+            "name": "medkit",
+            "qty": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "guide_no",
+      "text": "Then be careful. The tank hits hard.",
+      "choices": [
+        {
+          "text": "Understood."
         }
       ]
     }
