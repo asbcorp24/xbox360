@@ -145,6 +145,91 @@ The included demo has three rooms. Walking past the right edge changes to the ne
 
 The final exit is on room 2 and opens after all crystals are collected.
 
+
+
+## Tilemaps, enemies and game entities
+
+Set a solid tile in room 0:
+
+```bash
+./xgm set-tile 0 5 8 1
+```
+
+Set a decorative non-solid tile:
+
+```bash
+./xgm set-tile 0 10 6 2 --decor
+```
+
+Tile coordinates are grid coordinates. The default tile size is 16 pixels and is configured by `tile_size` in `project/game.json`.
+
+Add a horizontally patrolling enemy:
+
+```bash
+./xgm add-enemy 0 190 151 --left 180 --right 230 --speed 0.45
+```
+
+Add an NPC:
+
+```bash
+./xgm add-npc 0 102 148 "Collect every crystal!"
+```
+
+Stand near an NPC and press **B** to interact.
+
+Add a trigger:
+
+```bash
+./xgm add-trigger 1 180 120 24 40 --action tone --once
+```
+
+Trigger actions currently supported:
+
+```text
+tone
+checkpoint
+teleport
+```
+
+Teleport trigger example:
+
+```bash
+./xgm add-trigger 1 180 120 24 40 --action teleport --target-room 2 --target-x 20 --target-y 145
+```
+
+Add a door. Doors are activated with **B**:
+
+```bash
+./xgm add-door 1 294 140 2 18 145
+```
+
+Door that only opens after all crystals are collected:
+
+```bash
+./xgm add-door 1 294 140 2 18 145 --requires-all-crystals
+```
+
+Add an automatic teleporter:
+
+```bash
+./xgm add-teleport 2 15 148 0 280 145
+```
+
+The demo project includes examples of every new entity.
+
+### Gameplay behavior
+
+- solid tiles participate in player collision
+- decorative tiles render without collision
+- enemies patrol between `left` and `right`
+- touching an enemy respawns the player at the latest checkpoint
+- checkpoint triggers change the respawn point
+- NPC interaction uses **B**
+- doors use **B**
+- teleports activate automatically
+- one-shot triggers remember that they already fired
+- collected crystals remain collected when changing rooms
+
 ## Project data
 
 Main project file:
@@ -170,6 +255,7 @@ Do not edit generated files manually; run:
 
 - Left stick / D-pad: move
 - A: jump
+- B: interact with NPCs / doors
 - Start: restart
 - collect all crystals and reach the exit
 
