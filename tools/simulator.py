@@ -202,6 +202,7 @@ class Simulator:
     def particle_burst(self,x,y,kind="spark",count=6,color="#ffb050"):
         import random
         for _ in range(count):
+            if len(self.particles)>=128: break
             vx=(random.random()*2-1)*(1.8 if kind=="spark" else .8)
             vy=-(.2+random.random()*(1.5 if kind=="fire" else 1.0))
             gravity=-.005 if kind=="smoke" else (.08 if kind=="spark" else .035)
@@ -220,6 +221,8 @@ class Simulator:
             return
         self.inventory[ammo]-=1
         speed=float(gun.get("projectile_speed",5.0))
+        if len(self.projectiles)>=32:
+            return
         self.projectiles.append({
             "x":self.x+(self.w+2 if self.facing>0 else -3),
             "y":self.y+self.h/2,
@@ -274,6 +277,7 @@ class Simulator:
                 elif typ=="dust": vy=-.15-random.random()*.25
                 elif typ=="fire": vy=-.4-random.random()*speed
                 color="#%02x%02x%02x"%(int(e.get("r",180))&255,int(e.get("g",180))&255,int(e.get("b",180))&255)
+                if len(self.particles)>=128: continue
                 self.particles.append({
                     "x":float(e["x"]),"y":float(e["y"]),"vx":vx,"vy":vy,
                     "gravity":float(e.get("gravity",-.01)),"life":int(e.get("life",35)),
