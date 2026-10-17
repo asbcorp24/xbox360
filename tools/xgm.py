@@ -31,7 +31,7 @@ def room(d,n):
 
 def validate(d):
     e=[]
-    if d.get("format") not in (2,3): e.append("format must be 2 or 3")
+    if d.get("format") not in (2,3,4): e.append("format must be 2, 3 or 4")
     vr=d.get("virtual_resolution")
     if not isinstance(vr,list) or len(vr)!=2 or not all(isinstance(x,int) and x>0 for x in vr): e.append("virtual_resolution must be [w,h]")
     p=d.get("player",{})
@@ -187,7 +187,7 @@ def cmd_list(a):
             for j,x in enumerate(r[k]): print(f"  {k[:-1]} {j}: {x}")
 
 def mutate(a, fn):
-    path=pp(a); d=load(path); fn(d); d["format"]=3; save(path,d)
+    path=pp(a); d=load(path); fn(d); d["format"]=4; save(path,d)
 
 def cmd_add_room(a): mutate(a,lambda d:d["rooms"].append({"name":a.name,"platforms":[{"x":0,"y":160,"w":320,"h":20}],"crystals":[],"tiles":[],"enemies":[],"npcs":[],"triggers":[],"doors":[],"teleports":[]}))
 def cmd_add_platform(a): mutate(a,lambda d:room(d,a.room)["platforms"].append({"x":a.x,"y":a.y,"w":a.w,"h":a.h}))
