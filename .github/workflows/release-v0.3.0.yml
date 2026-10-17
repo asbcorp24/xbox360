@@ -1,0 +1,73 @@
+name: First Release v0.3.0
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Release v0.3.0'
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+    env:
+      DEVKITXENON: /usr/local/xenon
+      PATH: /usr/local/xenon/bin:/usr/local/xenon/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install generator runtime
+        run: |
+          apt-get update
+          apt-get install -y python3
+
+      - name: Validate and generate project
+        run: |
+          python3 tools/xgm.py validate
+          python3 tools/xgm.py generate
+
+      - name: Build
+        run: make
+
+      - name: Verify outputs
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Create v0.3.0 release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.3.0
+          target_commitish: main
+          name: Xbox360 Game Maker v0.3.0
+          body: |
+            Console-first Xbox360 Game Maker.
+
+            New in v0.3.0:
+            - tilemaps with solid/decor tiles
+            - patrolling enemies
+            - NPC interaction with B
+            - triggers: tone/checkpoint/teleport
+            - doors and locked doors
+            - automatic teleports
+            - checkpoint respawn
+            - CLI commands for all entities
+            - fixed custom jump WAV path
+            - demo project containing all entity types
+
+            Main commands:
+            - xgm set-tile
+            - xgm add-enemy
+            - xgm add-npc
+            - xgm add-trigger
+            - xgm add-door
+            - xgm add-teleport
+          files: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
