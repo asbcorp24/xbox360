@@ -13,6 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 class Simulator:
     def __init__(self, project_path: pathlib.Path):
         self.project_path = project_path
+        self.project_dir = project_path.parent
         self.data = json.loads(project_path.read_text(encoding="utf-8"))
         self.vw, self.vh = self.data.get("virtual_resolution", [320, 180])
         self.scale = 3
@@ -57,7 +58,9 @@ class Simulator:
         for k in ("boot_image","title_image"):
             if flow.get(k): paths.add(flow[k])
         for rel in paths:
-            path = ROOT / rel
+            path = (self.project_dir / rel).resolve()
+            if not path.exists():
+                path = (ROOT / rel).resolve()
             try:
                 img = tk.PhotoImage(file=str(path))
                 if self.scale > 1:
@@ -71,7 +74,10 @@ class Simulator:
         sprite_paths += list(a.get("enemy_sprites",{}).values())
         for rel in [x for x in sprite_paths if x]:
             try:
-                self.sprite_images[rel]=tk.PhotoImage(file=str(ROOT/rel))
+                p=(self.project_dir/rel).resolve()
+                if not p.exists():
+                    p=(ROOT/rel).resolve()
+                self.sprite_images[rel]=tk.PhotoImage(file=str(p))
             except Exception as e:
                 print(f"[sim] sprite PNG load failed: {rel}: {e}")
 
