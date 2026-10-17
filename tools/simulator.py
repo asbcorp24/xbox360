@@ -97,6 +97,12 @@ class Simulator:
         self.dialogue = None
         self.dialog_choice = 0
         self.message = ""
+        self.script_fired = set()
+        self.trigger_fired = set()
+        self.open_doors = set()
+        self.checkpoint = (self.room,self.x,self.y)
+        self.teleport_cooldown = 0
+        self.last_room_for_enter = None
         self.running = True
         self.last = time.perf_counter()
 
@@ -156,11 +162,10 @@ class Simulator:
             self.respawn()
 
     def respawn(self):
-        p = self.data.get("player", {})
-        self.room = int(p.get("start_room",0))
-        self.x,self.y = map(float,p.get("start",[14,148]))
+        self.room,self.x,self.y = self.checkpoint
         self.vx=self.vy=0
         self.camera_x=max(0,self.x-self.vw/2)
+        self.teleport_cooldown=20
 
     def item_power(self, kind):
         best = int(self.data.get("player",{}).get("damage",1))
@@ -191,6 +196,77 @@ class Simulator:
                 self.hp=min(self.max_hp,self.hp+int(item.get("power",1)))
                 self.inventory[item["name"]]-=1
                 self.message=f"Used {item['name']}"
+                return
+
+    def script_condition_ok(self, cond):
+        if not cond:
+            return True
+        kind=cond.get("kind")
+        name=cond.get("name","")
+        op=cond.get("op","eq")
+        rhs=int(cond.get("value",0))
+        lhs=int(self.flags.get(name,0) if kind=="flag" else self.variables.get(name,0))
+        return {"eq":lhs==rhs,"ne":lhs!=rhs,"gt":lhs>rhs,"lt":lhs<rhs,"ge":lhs>=rhs,"le":lhs<=rhs}.get(op,False)
+
+    def execute_script_action(self, a):
+        cmd=a.get("cmd")
+        if cmd=="set_flag":
+            self.flags[a.get("name","")]=int(a.get("value",0))
+        elif cmd=="set_var":
+            self.variables[a.get("name","")]=int(a.get("value",0))
+        elif cmd=="add_var":
+            n=a.get("name",""); self.variables[n]=int(self.variables.get(n,0))+int(a.get("value",0))
+        elif cmd=="open_door":
+            self.open_doors.add((int(a.get("room",-1)),int(a.get("index",-1))))
+        elif cmd=="spawn_enemy":
+            rr=int(a.get("room",-1)); idx=int(a.get("index",-1))
+            if 0<=rr<len(self.rooms):
+                es=self.rooms[rr].get("enemies",[])
+                if 0<=idx<len(es): es[idx]["_alive"]=True
+        elif cmd=="change_room":
+            rr=int(a.get("room",-1))
+            if 0<=rr<len(self.rooms):
+                self.room=rr; self.x=float(a.get("x",0)); self.y=float(a.get("y",0)); self.vx=self.vy=0; self.camera_x=0
+        elif cmd=="dialog":
+            self.message=a.get("text","")
+
+    def run_event(self, event, target=-1):
+        scripts=self.data.get("scripts",[])
+        for i,s in enumerate(scripts):
+            if s.get("event")!=event: continue
+            if int(s.get("room",-1)) not in (-1,self.room): continue
+            if int(s.get("target",-1)) not in (-1,target): continue
+            if s.get("once") and i in self.script_fired: continue
+            if not self.script_condition_ok(s.get("condition")): continue
+            if s.get("once"): self.script_fired.add(i)
+            for a in s.get("actions",[]): self.execute_script_action(a)
+
+    def process_room_enter(self):
+        if self.last_room_for_enter!=self.room:
+            self.last_room_for_enter=self.room
+            self.run_event("on_enter",-1)
+
+    def process_triggers(self):
+        room=self.room_data()
+        for i,t in enumerate(room.get("triggers",[])):
+            key=(self.room,i)
+            if t.get("once") and key in self.trigger_fired: continue
+            if not self.overlap(self.x,self.y,self.w,self.h,t["x"],t["y"],t["w"],t["h"]): continue
+            if t.get("once"): self.trigger_fired.add(key)
+            act=t.get("action","tone")
+            if act=="checkpoint":
+                self.checkpoint=(self.room,self.x,self.y); self.message="Checkpoint!"
+            elif act=="teleport" and int(t.get("target_room",-1))>=0:
+                self.room=int(t["target_room"]); self.x=float(t.get("target_x",0)); self.y=float(t.get("target_y",0)); self.vx=self.vy=0; self.camera_x=0
+            else:
+                self.message="Trigger"
+
+    def process_teleports(self):
+        if self.teleport_cooldown>0:
+            self.teleport_cooldown-=1; return
+        for t in self.room_data().get("teleports",[]):
+            if self.overlap(self.x,self.y,self.w,self.h,t["x"],t["y"],t.get("w",12),t.get("h",12)):
+                self.room=int(t["target_room"]); self.x=float(t["target_x"]); self.y=float(t["target_y"]); self.vx=self.vy=0; self.camera_x=0; self.teleport_cooldown=30
                 return
 
     def start_dialog(self, dialog_id):
@@ -228,12 +304,17 @@ class Simulator:
                     self.start_dialog(n["dialogue"])
                 else:
                     self.message=n.get("message","...")
+                self.run_event("on_interact", room["npcs"].index(n))
                 return
-        for d in room["doors"]:
+        for di,d in enumerate(room["doors"]):
             if self.overlap(self.x,self.y,self.w,self.h,d["x"]-3,d["y"]-3,d.get("w",12)+6,d.get("h",20)+6):
                 key=d.get("key")
-                if key and self.inventory.get(key,0)<=0:
+                scripted_open=(self.room,di) in self.open_doors
+                if key and self.inventory.get(key,0)<=0 and not scripted_open:
                     self.message=f"Need key: {key}"
+                    return
+                if d.get("locked") and not key and not scripted_open:
+                    self.message="Door is locked"
                     return
                 self.room=int(d["target_room"])
                 self.x=float(d["target_x"]); self.y=float(d["target_y"])
@@ -269,11 +350,12 @@ class Simulator:
                 p["_collected"]=True
                 self.inventory[p["item"]]=self.inventory.get(p["item"],0)+int(p.get("qty",1))
                 self.message=f"Picked up {p['item']}"
-        for c in room["crystals"]:
+        for ci,c in enumerate(room["crystals"]):
             if c.get("_collected"):
                 continue
             if self.overlap(self.x,self.y,self.w,self.h,c["x"],c["y"],6,7):
                 c["_collected"]=True
+                self.run_event("on_collect",ci)
 
     def update_camera(self):
         room=self.room_data()
@@ -350,6 +432,9 @@ class Simulator:
 
             self.update_enemies()
             self.update_pickups()
+            self.process_triggers()
+            self.process_teleports()
+            self.process_room_enter()
 
         if self.invuln: self.invuln-=1
         if self.attack_cd: self.attack_cd-=1
