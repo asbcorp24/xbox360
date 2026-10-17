@@ -1,0 +1,46 @@
+name: Build Xbox 360 Homebrew
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show toolchain info
+        run: |
+          echo "DEVKITXENON=$DEVKITXENON"
+          which xenon-gcc || true
+          xenon-gcc --version || true
+          make --version
+
+      - name: Build
+        run: |
+          make clean || true
+          make
+
+      - name: Verify outputs
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xbox360-pixel-build
+          path: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
+          if-no-files-found: error
+          retention-days: 30
