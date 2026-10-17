@@ -53,6 +53,9 @@ class Simulator:
                 for layer in layers:
                     if layer.get("image"):
                         paths.add(layer["image"])
+        flow=self.data.get("flow",{})
+        for k in ("boot_image","title_image"):
+            if flow.get(k): paths.add(flow[k])
         for rel in paths:
             path = ROOT / rel
             try:
@@ -147,6 +150,8 @@ class Simulator:
         self.checkpoint = (self.room,self.x,self.y)
         self.teleport_cooldown = 0
         self.last_room_for_enter = None
+        if not hasattr(self,"state"): self.state="boot"
+        self.state_timer=0
         self.running = True
         self.last = time.perf_counter()
 
@@ -197,13 +202,15 @@ class Simulator:
                 self.vy = 0
 
     def damage(self, amount):
-        if self.invuln:
+        if self.invuln or self.state!="game":
             return
         self.hp -= amount
         self.invuln = 45
         if self.hp <= 0:
-            self.hp = self.max_hp
-            self.respawn()
+            self.hp = 0
+            self.vx=self.vy=0
+            self.state="game_over"
+            self.state_timer=0
 
     def respawn(self):
         self.room,self.x,self.y = self.checkpoint
@@ -514,80 +521,114 @@ class Simulator:
         target=max(0,min(target,max(0,self.world_width()-self.vw)))
         self.camera_x+=(target-self.camera_x)*smooth
 
+    def collected_count(self):
+        return sum(1 for r in self.rooms for c in r.get("crystals",[]) if c.get("_collected"))
+
+    def total_crystals(self):
+        return sum(len(r.get("crystals",[])) for r in self.rooms)
+
+    def reached_exit(self):
+        ex=self.data.get("exit",{})
+        if int(ex.get("room",-1))!=self.room: return False
+        if self.collected_count()!=self.total_crystals(): return False
+        return self.overlap(self.x,self.y,self.w,self.h,float(ex.get("x",0))-2,float(ex.get("y",0))-3,float(ex.get("w",11))+4,float(ex.get("h",21))+3)
+
     def tick(self):
         if not self.running:
             return
         if "escape" in self.just_pressed:
             self.close(); return
 
-        if self.dialogue:
-            choices=self.dialogue.get("choices",[])
-            if choices:
-                if "up" in self.just_pressed or "w" in self.just_pressed:
-                    self.dialog_choice=(self.dialog_choice-1)%len(choices)
-                if "down" in self.just_pressed or "s" in self.just_pressed:
-                    self.dialog_choice=(self.dialog_choice+1)%len(choices)
-            if "return" in self.just_pressed or "space" in self.just_pressed:
-                self.confirm_dialog()
-        else:
-            p=self.data.get("player",{})
-            speed=float(p.get("speed",1.25))
-            left=("left" in self.keys or "a" in self.keys)
-            right=("right" in self.keys or "d" in self.keys)
-            if left and not right:
-                self.vx=-speed; self.facing=-1
-            elif right and not left:
-                self.vx=speed; self.facing=1
+        flow=self.data.get("flow",{})
+        confirm=("space" in self.just_pressed or "return" in self.just_pressed)
+
+        if self.state=="boot":
+            self.state_timer+=1
+            if confirm or self.state_timer>=int(flow.get("boot_frames",90)):
+                self.state="title"; self.state_timer=0
+        elif self.state=="title":
+            if confirm:
+                self.reset(); self.state="game"; self.process_room_enter()
+        elif self.state=="pause":
+            if "p" in self.just_pressed or confirm:
+                self.state="game"
+            elif "b" in self.just_pressed:
+                self.state="title"
+        elif self.state=="game_over":
+            if confirm:
+                self.reset(); self.state="game"; self.process_room_enter()
+            elif "b" in self.just_pressed:
+                self.state="title"
+        elif self.state=="ending":
+            if confirm:
+                self.state="credits"
+        elif self.state=="credits":
+            if confirm or "b" in self.just_pressed:
+                self.state="title"
+        elif self.state=="game":
+            if "p" in self.just_pressed:
+                self.state="pause"
+            elif self.dialogue:
+                choices=self.dialogue.get("choices",[])
+                if choices:
+                    if "up" in self.just_pressed or "w" in self.just_pressed:
+                        self.dialog_choice=(self.dialog_choice-1)%len(choices)
+                    if "down" in self.just_pressed or "s" in self.just_pressed:
+                        self.dialog_choice=(self.dialog_choice+1)%len(choices)
+                if confirm:
+                    self.confirm_dialog()
             else:
-                self.vx*=.55
-                if abs(self.vx)<.08: self.vx=0
+                p=self.data.get("player",{})
+                speed=float(p.get("speed",1.25))
+                left=("left" in self.keys or "a" in self.keys)
+                right=("right" in self.keys or "d" in self.keys)
+                if left and not right:
+                    self.vx=-speed; self.facing=-1
+                elif right and not left:
+                    self.vx=speed; self.facing=1
+                else:
+                    self.vx*=.55
+                    if abs(self.vx)<.08: self.vx=0
 
-            if ("space" in self.just_pressed or "z" in self.just_pressed) and self.on_ground:
-                self.vy=-float(p.get("jump_speed",4.35))
-                self.on_ground=False
-            if "x" in self.just_pressed:
-                self.attack()
-            if "c" in self.keys or "control_r" in self.keys:
-                self.shoot()
-            if "y" in self.just_pressed:
-                self.use_consumable()
-            if "e" in self.just_pressed or "return" in self.just_pressed:
-                self.interact()
-            if "r" in self.just_pressed:
-                self.reset()
+                if ("space" in self.just_pressed or "z" in self.just_pressed) and self.on_ground:
+                    self.vy=-float(p.get("jump_speed",4.35)); self.on_ground=False
+                if "x" in self.just_pressed: self.attack()
+                if "c" in self.keys or "control_r" in self.keys: self.shoot()
+                if "y" in self.just_pressed: self.use_consumable()
+                if "e" in self.just_pressed or "return" in self.just_pressed: self.interact()
+                if "r" in self.just_pressed: self.reset()
 
-            self.x+=self.vx
-            ww=self.world_width()
-            if self.x < -self.w:
-                if self.room>0:
-                    self.room-=1; self.x=self.world_width()-self.w-2; self.camera_x=max(0,self.world_width()-self.vw)
-                else: self.x=0
-            elif self.x > ww:
-                if self.room<len(self.rooms)-1:
-                    self.room+=1; self.x=2; self.camera_x=0
-                else: self.x=ww-self.w
+                self.x+=self.vx
+                ww=self.world_width()
+                if self.x < -self.w:
+                    if self.room>0:
+                        self.room-=1; self.x=self.world_width()-self.w-2; self.camera_x=max(0,self.world_width()-self.vw)
+                    else: self.x=0
+                elif self.x > ww:
+                    if self.room<len(self.rooms)-1:
+                        self.room+=1; self.x=2; self.camera_x=0
+                    else: self.x=ww-self.w
 
-            old_y=self.y
-            self.vy+=float(p.get("gravity",.24))
-            self.vy=min(self.vy,float(p.get("max_fall_speed",5)))
-            self.y+=self.vy
-            self.collide_vertical(old_y)
-            if self.y>self.vh+40:
-                self.respawn()
+                old_y=self.y
+                self.vy+=float(p.get("gravity",.24))
+                self.vy=min(self.vy,float(p.get("max_fall_speed",5)))
+                self.y+=self.vy
+                self.collide_vertical(old_y)
+                if self.y>self.vh+40: self.respawn()
 
-            self.update_enemies()
-            self.update_projectiles()
-            self.update_particles()
-            self.update_pickups()
-            self.process_triggers()
-            self.process_teleports()
-            self.process_room_enter()
+                self.update_enemies(); self.update_projectiles(); self.update_particles()
+                self.update_pickups(); self.process_triggers(); self.process_teleports(); self.process_room_enter()
+                if self.reached_exit():
+                    self.vx=self.vy=0
+                    self.state="ending"; self.state_timer=0
 
-        if self.invuln: self.invuln-=1
-        if self.attack_cd: self.attack_cd-=1
-        if self.attack_frames: self.attack_frames-=1
-        if self.fire_cd: self.fire_cd-=1
-        self.update_camera()
+        if self.state=="game":
+            if self.invuln: self.invuln-=1
+            if self.attack_cd: self.attack_cd-=1
+            if self.attack_frames: self.attack_frames-=1
+            if self.fire_cd: self.fire_cd-=1
+            self.update_camera()
+
         self.draw()
         self.just_pressed.clear()
         self.root.after(16,self.tick)
@@ -628,7 +669,7 @@ class Simulator:
     def rect(self,x,y,w,h,fill,outline=""):
         self.canvas.create_rectangle(self.sx(x),self.sy(y),self.sx(x+w),self.sy(y+h),fill=fill,outline=outline)
 
-    def draw(self):
+    def draw_game(self):
         self.canvas.delete("all")
         room=self.room_data()
         vis=room.get("visuals",{})
@@ -718,6 +759,45 @@ class Simulator:
                 y+=25
 
         self.info.set(f"camera={self.camera_x:.1f}  player=({self.x:.1f},{self.y:.1f})  room_width={self.world_width()}")
+
+    def draw_flow(self):
+        self.canvas.delete("all")
+        flow=self.data.get("flow",{})
+        rel=flow.get("boot_image") if self.state=="boot" else flow.get("title_image")
+        img=self.images.get(rel) if rel else None
+        if img:
+            self.canvas.create_image(0,0,image=img,anchor="nw")
+        else:
+            self.canvas.create_rectangle(0,0,self.vw*self.scale,self.vh*self.scale,fill="#0a0c1c",outline="")
+
+        if self.state=="title":
+            self.canvas.create_text(self.vw*self.scale/2,105*self.scale,fill="white",text=flow.get("title",self.data.get("name","XGM GAME")),font=("Consolas",18,"bold"))
+            self.canvas.create_text(self.vw*self.scale/2,126*self.scale,fill="#7ddcff",text=flow.get("subtitle","PRESS SPACE / ENTER"),font=("Consolas",11))
+        elif self.state=="game_over":
+            self.canvas.create_rectangle(220,145,740,360,fill="#090b18",outline="#cc4965")
+            self.canvas.create_text(480,190,fill="#ff7890",text=flow.get("game_over","GAME OVER"),font=("Consolas",22,"bold"))
+            self.canvas.create_text(480,250,fill="white",text="SPACE/ENTER - RETRY",font=("Consolas",11))
+            self.canvas.create_text(480,285,fill="#7ddcff",text="B - TITLE",font=("Consolas",11))
+        elif self.state=="ending":
+            self.canvas.create_rectangle(190,140,770,350,fill="#090b18",outline="#6dff9c")
+            self.canvas.create_text(480,200,fill="#78ffb4",text=flow.get("ending","MISSION COMPLETE"),font=("Consolas",20,"bold"))
+            self.canvas.create_text(480,270,fill="white",text="PRESS SPACE / ENTER",font=("Consolas",11))
+        elif self.state=="credits":
+            self.canvas.create_rectangle(150,115,810,390,fill="#090b18",outline="#7ddcff")
+            self.canvas.create_text(480,165,fill="white",text="CREDITS",font=("Consolas",20,"bold"))
+            self.canvas.create_text(480,225,fill="#7ddcff",text=flow.get("credits","CREATED WITH XGM"),font=("Consolas",12))
+            self.canvas.create_text(480,330,fill="#ff78b8",text="SPACE / ENTER / B - TITLE",font=("Consolas",10))
+
+    def draw(self):
+        if self.state in ("game","pause"):
+            self.draw_game()
+            if self.state=="pause":
+                self.canvas.create_rectangle(225,145,735,355,fill="#090b18",outline="#7ddcff")
+                self.canvas.create_text(480,190,fill="white",text="PAUSED",font=("Consolas",22,"bold"))
+                self.canvas.create_text(480,245,fill="#7ddcff",text="P / SPACE / ENTER - RESUME",font=("Consolas",10))
+                self.canvas.create_text(480,285,fill="#ff78b8",text="B - TITLE",font=("Consolas",10))
+        else:
+            self.draw_flow()
 
     def run(self):
         self.root.after(0,self.tick)
