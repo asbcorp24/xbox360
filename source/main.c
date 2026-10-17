@@ -14,12 +14,16 @@
 typedef struct { int room; float x,y,w,h; } room_platform_t;
 typedef struct { int room; int x,y; int collected; } room_crystal_t;
 typedef struct { int room,x,y,tile,solid; } tile_cell_t;
-typedef struct { int room; float x,y; int w,h; float left,right,speed; int dir,alive,initial_alive; } enemy_t;
-typedef struct { int room,x,y,w,h; const char *message; } npc_t;
+typedef struct { int room; float x,y; int w,h; float left,right,speed; int dir,alive,initial_alive,type,hp,max_hp,damage; } enemy_t;
+typedef struct { int room,x,y,w,h; const char *message; int dialogue; } npc_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y,once,fired; const char *action; } trigger_t;
-typedef struct { int room,x,y,w,h,target_room,target_x,target_y,requires_all,locked; } door_t;
+typedef struct { int room,x,y,w,h,target_room,target_x,target_y,requires_all,locked,key_item; } door_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y; } teleport_t;
-typedef struct { float x,y,vx,vy; int on_ground; } player_t;
+typedef struct { float x,y,vx,vy; int on_ground,hp,max_hp,invuln,attack_cd,attack_frames; } player_t;
+typedef struct { const char *name; int kind,power,count,initial_count; } item_t;
+typedef struct { int room,x,y,item_index,qty,collected; } pickup_t;
+typedef struct { const char *id,*text; int choice_start,choice_count; } dialog_node_t;
+typedef struct { const char *text; int next_node; const char *set_flag; int set_flag_value,give_item,give_qty; } dialog_choice_t;
 
 typedef struct { const char *name; int value,initial_value; } script_value_t;
 typedef struct { int cmd; const char *name; int value,room,index,x,y; const char *text; } script_action_t;
@@ -31,6 +35,7 @@ enum { ACT_SET_FLAG=1, ACT_SET_VAR=2, ACT_ADD_VAR=3, ACT_OPEN_DOOR=4, ACT_SPAWN_
 #include "generated_game.h"
 #include "generated_assets.h"
 #include "generated_scripts.h"
+#include "generated_rpg.h"
 
 static fb2d_t g_fb;
 static int g_scale,g_off_x,g_off_y;
@@ -44,6 +49,8 @@ static unsigned char g_door_open[(DOOR_COUNT>0)?DOOR_COUNT:1];
 static const char *g_dialog_text=0;
 static int g_dialog_timer=0;
 static int g_last_script_room=-999;
+static int g_active_dialog=-1;
+static int g_dialog_choice=0;
 
 static int iroundf_local(float v){ return (int)(v+(v>=0.0f?0.5f:-0.5f)); }
 static int overlaps(float ax,float ay,float aw,float ah,float bx,float by,float bw,float bh){
@@ -179,6 +186,31 @@ static int local_npc_index(int global_index){
 static void script_dialog(const char *text){
     g_dialog_text=text; g_dialog_timer=180; printf("DIALOG: %s\n",text);
 }
+static int inventory_count(int idx){ return (idx>=0&&idx<RPG_ITEM_COUNT)?items[idx].count:0; }
+static void inventory_add(int idx,int qty){ if(idx>=0&&idx<RPG_ITEM_COUNT) items[idx].count+=qty; }
+static int weapon_damage(void){
+    int best=PLAYER_BASE_DAMAGE;
+    for(int i=0;i<RPG_ITEM_COUNT;++i) if(items[i].kind==3&&items[i].count>0&&items[i].power>best) best=items[i].power;
+    return best;
+}
+static void start_dialog(int node){
+    if(node<0||node>=DIALOG_NODE_COUNT)return;
+    g_active_dialog=node; g_dialog_choice=0; g_dialog_text=dialog_nodes[node].text; g_dialog_timer=999999;
+}
+static void choose_dialog(player_t *p){
+    if(g_active_dialog<0||g_active_dialog>=DIALOG_NODE_COUNT)return;
+    const dialog_node_t *n=&dialog_nodes[g_active_dialog];
+    if(n->choice_count<=0){g_active_dialog=-1;g_dialog_timer=0;return;}
+    int ci=n->choice_start+g_dialog_choice;
+    const dialog_choice_t *ch=&dialog_choices[ci];
+    if(ch->set_flag&&ch->set_flag[0]){
+        script_value_t *v=find_value(script_flags,SCRIPT_FLAG_COUNT,ch->set_flag);
+        if(v)v->value=ch->set_flag_value;
+    }
+    if(ch->give_item>=0) inventory_add(ch->give_item,ch->give_qty);
+    if(ch->next_node>=0) start_dialog(ch->next_node);
+    else { g_active_dialog=-1; g_dialog_timer=0; g_dialog_text=0; }
+}
 static void execute_action(const script_action_t *a,player_t *p){
     script_value_t *v; int i;
     switch(a->cmd){
@@ -280,8 +312,22 @@ static void draw_room(const player_t *p,int facing,int won){
     draw_rect(6,6,72,11,fb2d_rgb(9,11,24));
     for(int i=0;i<CRYSTAL_COUNT&&i<8;++i) if(crystals[i].collected) draw_crystal(9+i*7,8); else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
     for(int i=0;i<ROOM_COUNT;++i) draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
+    draw_rect(6,20,44,6,fb2d_rgb(40,28,40)); draw_rect(8,22,(player_t*)p?((p->hp*40)/(p->max_hp?p->max_hp:1)):0,2,fb2d_rgb(220,72,72));
+    for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room){draw_rect(pickups[i].x,pickups[i].y,6,6,fb2d_rgb(230,190,70));}
+    if(p->attack_frames>0){int ax=facing>0?iroundf_local(p->x)+PLAYER_W:iroundf_local(p->x)-10;draw_rect(ax,iroundf_local(p->y)+3,10,3,fb2d_rgb(245,230,180));}
 
-    if(g_npc_flash>0||g_dialog_timer>0){ draw_rect(52,24,216,32,fb2d_rgb(245,240,220)); draw_rect(54,26,212,28,fb2d_rgb(252,249,235)); if(g_dialog_text)draw_text3x5(58,31,g_dialog_text,fb2d_rgb(48,44,62),96); }
+    if(g_npc_flash>0||g_dialog_timer>0||g_active_dialog>=0){
+        draw_rect(40,18,240,54,fb2d_rgb(245,240,220)); draw_rect(42,20,236,50,fb2d_rgb(252,249,235));
+        if(g_dialog_text)draw_text3x5(48,25,g_dialog_text,fb2d_rgb(48,44,62),110);
+        if(g_active_dialog>=0){
+            const dialog_node_t *dn=&dialog_nodes[g_active_dialog];
+            for(int k=0;k<dn->choice_count&&k<3;++k){
+                const dialog_choice_t *ch=&dialog_choices[dn->choice_start+k];
+                if(k==g_dialog_choice) draw_rect(46,48+k*7,3,5,fb2d_rgb(190,60,72));
+                draw_text3x5(52,48+k*7,ch->text,fb2d_rgb(48,44,62),46);
+            }
+        }
+    }
     if(won){ draw_rect(88,58,144,42,fb2d_rgb(8,10,22)); draw_rect(92,62,136,34,fb2d_rgb(47,39,72)); }
 }
 
@@ -291,13 +337,16 @@ static void respawn(player_t *p){
 static void reset_game(player_t *p,int *facing,int *won){
     *facing=1; *won=0; g_checkpoint_room=PLAYER_START_ROOM; g_checkpoint_x=PLAYER_START_X; g_checkpoint_y=PLAYER_START_Y; respawn(p);
     for(int i=0;i<CRYSTAL_COUNT;++i) crystals[i].collected=0;
-    for(int i=0;i<ENEMY_COUNT;++i) enemies[i].alive=enemies[i].initial_alive;
+    for(int i=0;i<ENEMY_COUNT;++i){ enemies[i].alive=enemies[i].initial_alive; enemies[i].hp=enemies[i].max_hp; }
     for(int i=0;i<TRIGGER_COUNT;++i) triggers[i].fired=0;
     for(int i=0;i<SCRIPT_EVENT_COUNT;++i) script_events[i].fired=0;
     for(int i=0;i<SCRIPT_FLAG_COUNT;++i) script_flags[i].value=script_flags[i].initial_value;
     for(int i=0;i<SCRIPT_VAR_COUNT;++i) script_vars[i].value=script_vars[i].initial_value;
+    for(int i=0;i<RPG_ITEM_COUNT;++i) items[i].count=items[i].initial_count;
+    for(int i=0;i<RPG_PICKUP_COUNT;++i) pickups[i].collected=0;
     memset(g_door_open,0,sizeof(g_door_open));
-    g_last_script_room=-999; g_dialog_timer=0; g_dialog_text=0;
+    g_last_script_room=-999; g_dialog_timer=0; g_dialog_text=0; g_active_dialog=-1;
+    p->max_hp=PLAYER_MAX_HP; p->hp=PLAYER_MAX_HP; p->invuln=0; p->attack_cd=0; p->attack_frames=0;
 }
 
 static void collide_surface(player_t *p,float old_y,float x,float y,float w,float h){
@@ -321,11 +370,30 @@ static void update_player(player_t *p){
     if(p->y>VH+30) respawn(p);
 }
 
+static void damage_player(player_t *p,int dmg){
+    if(p->invuln>0)return;
+    p->hp-=dmg; p->invuln=45; snd_hit();
+    if(p->hp<=0){ p->hp=p->max_hp; respawn(p); }
+}
 static void update_enemies(player_t *p){
     for(int i=0;i<ENEMY_COUNT;++i){
         enemy_t *e=&enemies[i]; if(e->room!=g_room||!e->alive) continue;
-        e->x+=e->speed*e->dir; if(e->x<=e->left){e->x=e->left;e->dir=1;} if(e->x>=e->right){e->x=e->right;e->dir=-1;}
-        if(overlaps(p->x,p->y,PLAYER_W,PLAYER_H,e->x,e->y,e->w,e->h)){ snd_hit(); respawn(p); return; }
+        float sp=e->speed;
+        if(e->type==2 && (p->x-e->x<70.0f&&p->x-e->x>-70.0f)) e->dir=(p->x>=e->x)?1:-1, sp*=1.8f;
+        if(e->type==3) sp*=0.55f;
+        e->x+=sp*e->dir; if(e->x<=e->left){e->x=e->left;e->dir=1;} if(e->x>=e->right){e->x=e->right;e->dir=-1;}
+        if(overlaps(p->x,p->y,PLAYER_W,PLAYER_H,e->x,e->y,e->w,e->h)){ damage_player(p,e->damage); }
+    }
+}
+static void player_attack(player_t *p,int facing){
+    if(p->attack_cd>0)return;
+    p->attack_cd=20; p->attack_frames=6;
+    float ax=facing>0?p->x+PLAYER_W:p->x-12;
+    for(int i=0;i<ENEMY_COUNT;++i){
+        enemy_t *e=&enemies[i]; if(e->room!=g_room||!e->alive)continue;
+        if(overlaps(ax,p->y+2,12,PLAYER_H-2,e->x,e->y,e->w,e->h)){
+            e->hp-=weapon_damage(); if(e->hp<=0)e->alive=0; else e->dir=-e->dir;
+        }
     }
 }
 
@@ -348,10 +416,11 @@ static void process_teleports(player_t *p){
 }
 
 static void interact(player_t *p){
-    for(int i=0;i<NPC_COUNT;++i){ const npc_t *n=&npcs[i]; if(n->room==g_room&&overlaps(p->x-6,p->y-4,PLAYER_W+12,PLAYER_H+8,n->x,n->y,n->w,n->h)){ g_npc_flash=90;snd_npc();script_dialog(n->message);run_script_event(EVT_ON_INTERACT,g_room,local_npc_index(i),p);return; } }
+    for(int i=0;i<NPC_COUNT;++i){ const npc_t *n=&npcs[i]; if(n->room==g_room&&overlaps(p->x-6,p->y-4,PLAYER_W+12,PLAYER_H+8,n->x,n->y,n->w,n->h)){ g_npc_flash=90;snd_npc(); if(n->dialogue>=0) start_dialog(n->dialogue); else script_dialog(n->message); run_script_event(EVT_ON_INTERACT,g_room,local_npc_index(i),p);return; } }
     for(int i=0;i<DOOR_COUNT;++i){ const door_t *d=&doors[i]; if(d->room!=g_room)continue;
         if(overlaps(p->x,p->y,PLAYER_W,PLAYER_H,d->x-3,d->y-3,d->w+6,d->h+6)){
-            if(!g_door_open[i]&&d->locked){ xenon_tone(190,60,XENON_TONE_AMPLITUDE_25);return; }
+            if(d->key_item>=0&&inventory_count(d->key_item)<=0){ xenon_tone(190,60,XENON_TONE_AMPLITUDE_25);return; }
+            if(!g_door_open[i]&&d->locked&&d->key_item<0){ xenon_tone(190,60,XENON_TONE_AMPLITUDE_25);return; }
             if(!g_door_open[i]&&d->requires_all&&total_collected()!=CRYSTAL_COUNT){ xenon_tone(190,60,XENON_TONE_AMPLITUDE_25);return; }
             g_room=d->target_room;p->x=d->target_x;p->y=d->target_y;p->vx=p->vy=0;g_teleport_cooldown=30;snd_door();return;
         }
@@ -371,11 +440,18 @@ int main(void){
         struct controller_data_s pad;memset(&pad,0,sizeof(pad));
         if(get_controller_data(&pad,0)){
             int left=pad.left||pad.s1_x<-9000,right=pad.right||pad.s1_x>9000;
-            if(!won){
+            if(g_active_dialog>=0){
+                const dialog_node_t *dn=&dialog_nodes[g_active_dialog];
+                if((pad.up&&!prev.up)||(pad.s1_y>9000&&prev.s1_y<=9000)){ if(dn->choice_count>0) g_dialog_choice=(g_dialog_choice+dn->choice_count-1)%dn->choice_count; }
+                if((pad.down&&!prev.down)||(pad.s1_y<-9000&&prev.s1_y>=-9000)){ if(dn->choice_count>0) g_dialog_choice=(g_dialog_choice+1)%dn->choice_count; }
+                if((pad.b&&!prev.b)||(pad.a&&!prev.a)) choose_dialog(&player);
+            } else if(!won){
                 if(left&&!right){player.vx=-PLAYER_SPEED;facing=-1;} else if(right&&!left){player.vx=PLAYER_SPEED;facing=1;} else {player.vx*=.55f;if(player.vx>-.08f&&player.vx<.08f)player.vx=0;}
                 if(pad.a&&!prev.a&&player.on_ground){player.vy=-PLAYER_JUMP_SPEED;player.on_ground=0;snd_jump();}
+                if(pad.x&&!prev.x) player_attack(&player,facing);
                 update_player(&player); update_enemies(&player);
                 for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].room==g_room&&!crystals[i].collected&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){crystals[i].collected=1;snd_collect();run_script_event(EVT_ON_COLLECT,g_room,local_crystal_index(i),&player);}
+                for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,pickups[i].x,pickups[i].y,6,6)){pickups[i].collected=1;inventory_add(pickups[i].item_index,pickups[i].qty);snd_collect();}
                 process_triggers(&player);process_teleports(&player);
                 if(pad.b&&!prev.b) interact(&player);
                 process_room_enter(&player);
@@ -385,7 +461,8 @@ int main(void){
             if(won&&pad.a&&!prev.a)reset_game(&player,&facing,&won);
             prev=pad;
         }
-        if(g_npc_flash>0)--g_npc_flash; if(g_dialog_timer>0)--g_dialog_timer;
+        if(g_npc_flash>0)--g_npc_flash; if(g_dialog_timer>0&&g_active_dialog<0)--g_dialog_timer;
+        if(player.invuln>0)--player.invuln; if(player.attack_cd>0)--player.attack_cd; if(player.attack_frames>0)--player.attack_frames;
         draw_room(&player,facing,won);fb2d_present(&g_fb);usb_do_poll();++g_frame_counter;
     }
     return 0;
