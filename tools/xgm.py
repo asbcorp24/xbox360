@@ -214,6 +214,13 @@ def gen_assets(d, project_file):
     add_sheet("WALKER","enemy_walker_rgba",enemy_sprites.get("walker"),enemy_frame)
     add_sheet("CHARGER","enemy_charger_rgba",enemy_sprites.get("charger"),enemy_frame)
     add_sheet("TANK","enemy_tank_rgba",enemy_sprites.get("tank"),enemy_frame)
+    add_sheet("SHIV","enemy_shiv_rgba",enemy_sprites.get("shiv"),enemy_frame)
+    add_sheet("BRUTE","enemy_brute_rgba",enemy_sprites.get("brute"),enemy_frame)
+    add_sheet("HITMAN","enemy_hitman_rgba",enemy_sprites.get("hitman"),enemy_frame)
+    add_sheet("MERC","enemy_merc_rgba",enemy_sprites.get("merc"),enemy_frame)
+    add_sheet("BULLY","enemy_bully_rgba",enemy_sprites.get("bully"),enemy_frame)
+    add_sheet("BOUNCER","enemy_bouncer_rgba",enemy_sprites.get("bouncer"),enemy_frame)
+    add_sheet("BOSS","enemy_boss_rgba",enemy_sprites.get("boss"),enemy_frame)
 
     add_sheet("NPC","npc_sprite_rgba",a.get("npc_sprite"),a.get("npc_frame_size",[16,16]))
 
@@ -429,7 +436,7 @@ def parser():
     q=s.add_parser("add-platform"); q.add_argument("room",type=int); [q.add_argument(k,type=int) for k in ("x","y","w","h")]; q.set_defaults(func=cmd_add_platform)
     q=s.add_parser("add-crystal"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.set_defaults(func=cmd_add_crystal)
     q=s.add_parser("set-tile"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("tile",type=int); q.add_argument("--decor",action="store_true"); q.set_defaults(func=cmd_set_tile)
-    q=s.add_parser("add-enemy"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--left",type=float,required=True); q.add_argument("--right",type=float,required=True); q.add_argument("--speed",type=float,default=.45); q.add_argument("--w",type=int,default=8); q.add_argument("--h",type=int,default=8); q.add_argument("--inactive",action="store_true"); q.add_argument("--type",choices=["walker","charger","tank"],default="walker"); q.add_argument("--hp",type=int,default=2); q.add_argument("--damage",type=int,default=1); q.set_defaults(func=cmd_add_enemy)
+    q=s.add_parser("add-enemy"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--left",type=float,required=True); q.add_argument("--right",type=float,required=True); q.add_argument("--speed",type=float,default=.45); q.add_argument("--w",type=int,default=8); q.add_argument("--h",type=int,default=8); q.add_argument("--inactive",action="store_true"); q.add_argument("--type",choices=["walker","charger","tank","shiv","brute","hitman","merc","bully","bouncer","boss"],default="walker"); q.add_argument("--hp",type=int,default=2); q.add_argument("--damage",type=int,default=1); q.set_defaults(func=cmd_add_enemy)
     q=s.add_parser("add-npc"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("message"); q.add_argument("--w",type=int,default=8); q.add_argument("--h",type=int,default=12); q.add_argument("--dialogue"); q.set_defaults(func=cmd_add_npc)
     q=s.add_parser("add-trigger"); q.add_argument("room",type=int); [q.add_argument(k,type=int) for k in ("x","y","w","h")]; q.add_argument("--action",choices=["tone","checkpoint","teleport"],default="tone"); q.add_argument("--target-room",type=int,default=-1); q.add_argument("--target-x",type=int,default=0); q.add_argument("--target-y",type=int,default=0); q.add_argument("--once",action="store_true"); q.set_defaults(func=cmd_add_trigger)
     q=s.add_parser("add-door"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("target_room",type=int); q.add_argument("target_x",type=int); q.add_argument("target_y",type=int); q.add_argument("--w",type=int,default=12); q.add_argument("--h",type=int,default=20); q.add_argument("--requires-all-crystals",action="store_true"); q.add_argument("--locked",action="store_true"); q.add_argument("--key"); q.set_defaults(func=cmd_add_door)
