@@ -24,6 +24,8 @@ typedef struct { const char *name; int kind,power,count,initial_count; } item_t;
 typedef struct { int room,x,y,item_index,qty,collected; } pickup_t;
 typedef struct { const char *id,*text; int choice_start,choice_count; } dialog_node_t;
 typedef struct { const char *text; int next_node; const char *set_flag; int set_flag_value,give_item,give_qty; } dialog_choice_t;
+typedef struct { int w,h; const unsigned char *rgba; const char *name; } visual_asset_t;
+typedef struct { int room,asset; float speed_x,speed_y; int repeat_x,repeat_y,offset_x,offset_y,foreground,order; } visual_layer_t;
 
 typedef struct { const char *name; int value,initial_value; } script_value_t;
 typedef struct { int cmd; const char *name; int value,room,index,x,y; const char *text; } script_action_t;
@@ -36,6 +38,7 @@ enum { ACT_SET_FLAG=1, ACT_SET_VAR=2, ACT_ADD_VAR=3, ACT_OPEN_DOOR=4, ACT_SPAWN_
 #include "generated_assets.h"
 #include "generated_scripts.h"
 #include "generated_rpg.h"
+#include "generated_visuals.h"
 
 static fb2d_t g_fb;
 static int g_scale,g_off_x,g_off_y;
@@ -51,6 +54,10 @@ static int g_dialog_timer=0;
 static int g_last_script_room=-999;
 static int g_active_dialog=-1;
 static int g_dialog_choice=0;
+static float g_camera_x=0.0f,g_camera_y=0.0f;
+static int g_world_mode=0;
+static int g_shake_frames=0,g_shake_strength=0;
+static int g_shake_x=0,g_shake_y=0;
 
 static int iroundf_local(float v){ return (int)(v+(v>=0.0f?0.5f:-0.5f)); }
 static int overlaps(float ax,float ay,float aw,float ah,float bx,float by,float bw,float bh){
@@ -68,9 +75,60 @@ static void draw_rect_screen(int x,int y,int w,int h,uint32_t color){
     }
 }
 static void draw_rect(int x,int y,int w,int h,uint32_t c){
-    draw_rect_screen(g_off_x+x*g_scale,g_off_y+y*g_scale,w*g_scale,h*g_scale,c);
+    int ox=0,oy=0;
+    if(g_world_mode){ ox=-(int)g_camera_x+g_shake_x; oy=-(int)g_camera_y+g_shake_y; }
+    draw_rect_screen(g_off_x+(x+ox)*g_scale,g_off_y+(y+oy)*g_scale,w*g_scale,h*g_scale,c);
 }
 static void draw_pixel(int x,int y,uint32_t c){ draw_rect(x,y,1,1,c); }
+static void draw_visual_asset(const visual_asset_t *a,int dx,int dy){
+    if(!a||!a->rgba)return;
+    for(int y=0;y<a->h;++y) for(int x=0;x<a->w;++x){
+        int i=(y*a->w+x)*4; if(a->rgba[i+3]<16)continue;
+        draw_pixel(dx+x,dy+y,fb2d_rgb(a->rgba[i],a->rgba[i+1],a->rgba[i+2]));
+    }
+}
+static int imod(int a,int m){ int r=a%m; return r<0?r+m:r; }
+static void draw_visual_layers(int foreground){
+    int old=g_world_mode; g_world_mode=0;
+    for(int i=0;i<VISUAL_LAYER_COUNT;++i){
+        const visual_layer_t *l=&visual_layers[i];
+        if(l->room!=g_room||l->foreground!=foreground)continue;
+        const visual_asset_t *a=&visual_assets[l->asset];
+        int base_x=l->offset_x-(int)(g_camera_x*l->speed_x)+(foreground?g_shake_x:0);
+        int base_y=l->offset_y-(int)(g_camera_y*l->speed_y)+(foreground?g_shake_y:0);
+        int start_x=l->repeat_x? -imod(-base_x,a->w):base_x;
+        int start_y=l->repeat_y? -imod(-base_y,a->h):base_y;
+        int end_x=l->repeat_x?VW:start_x+1;
+        int end_y=l->repeat_y?VH:start_y+1;
+        for(int y=start_y;y<end_y;y+=a->h){
+            for(int x=start_x;x<end_x;x+=a->w) draw_visual_asset(a,x,y);
+        }
+    }
+    g_world_mode=old;
+}
+static void camera_shake(int strength,int frames){
+    if(strength>g_shake_strength)g_shake_strength=strength;
+    if(frames>g_shake_frames)g_shake_frames=frames;
+}
+static void update_camera(const player_t *p){
+    int roomw=room_world_width[g_room];
+    float target=p->x-(VW/2.0f);
+    float dz=(float)room_camera_deadzone[g_room];
+    float center=g_camera_x+VW/2.0f;
+    if(p->x<center-dz) target=p->x-(VW/2.0f-dz);
+    else if(p->x>center+dz) target=p->x-(VW/2.0f+dz);
+    else target=g_camera_x;
+    float maxx=(float)(roomw-VW); if(maxx<0)maxx=0;
+    if(target<0)target=0; if(target>maxx)target=maxx;
+    g_camera_x+=(target-g_camera_x)*room_camera_smoothing[g_room];
+    if(g_shake_frames>0){
+        int phase=(int)g_frame_counter;
+        g_shake_x=(phase&1)?g_shake_strength:-g_shake_strength;
+        g_shake_y=(phase&2)?(g_shake_strength/2):-(g_shake_strength/2);
+        --g_shake_frames;
+        if(g_shake_frames<=0){g_shake_x=g_shake_y=0;g_shake_strength=0;}
+    }
+}
 
 static unsigned char glyph3x5(char ch,int row){
     if(ch>='a'&&ch<='z') ch=(char)(ch-'a'+'A');
@@ -298,9 +356,9 @@ static void draw_exit(int open){
 }
 
 static void draw_room(const player_t *p,int facing,int won){
-    uint32_t sky=fb2d_rgb(19+g_room*4,19+g_room*3,38+g_room*7); fb2d_clear(&g_fb,sky);
-    static const uint16_t stars[][2]={{12,18},{39,31},{71,14},{101,38},{139,20},{173,29},{205,12},{238,35},{270,18},{305,42},{24,74},{88,61},{154,56},{257,65},{294,82}};
-    for(unsigned i=0;i<sizeof(stars)/sizeof(stars[0]);++i) draw_pixel(stars[i][0],stars[i][1],fb2d_rgb(93,91,128));
+    fb2d_clear(&g_fb,fb2d_rgb(12,14,28));
+    draw_visual_layers(0);
+    g_world_mode=1;
 
     for(int i=0;i<TILE_COUNT;++i) if(tiles[i].room==g_room) draw_tile(&tiles[i]);
     for(int i=0;i<PLATFORM_COUNT;++i) if(platforms[i].room==g_room){
@@ -324,6 +382,9 @@ static void draw_room(const player_t *p,int facing,int won){
     for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room){draw_rect(pickups[i].x,pickups[i].y,6,6,fb2d_rgb(230,190,70));}
     if(p->attack_frames>0){int ax=facing>0?iroundf_local(p->x)+PLAYER_W:iroundf_local(p->x)-10;draw_rect(ax,iroundf_local(p->y)+3,10,3,fb2d_rgb(245,230,180));}
 
+    g_world_mode=0;
+    draw_visual_layers(1);
+
     if(g_npc_flash>0||g_dialog_timer>0||g_active_dialog>=0){
         draw_rect(40,18,240,54,fb2d_rgb(245,240,220)); draw_rect(42,20,236,50,fb2d_rgb(252,249,235));
         if(g_dialog_text)draw_text3x5(48,25,g_dialog_text,fb2d_rgb(48,44,62),110);
@@ -341,6 +402,7 @@ static void draw_room(const player_t *p,int facing,int won){
 
 static void respawn(player_t *p){
     g_room=g_checkpoint_room; p->x=g_checkpoint_x; p->y=g_checkpoint_y; p->vx=p->vy=0; p->on_ground=0; g_teleport_cooldown=20;
+    g_camera_x=p->x-(VW/2.0f); if(g_camera_x<0)g_camera_x=0;
 }
 static void reset_game(player_t *p,int *facing,int *won){
     *facing=1; *won=0; g_checkpoint_room=PLAYER_START_ROOM; g_checkpoint_x=PLAYER_START_X; g_checkpoint_y=PLAYER_START_Y; respawn(p);
@@ -372,15 +434,16 @@ static void collide_room(player_t *p,float old_y){
 
 static void update_player(player_t *p){
     p->x+=p->vx;
-    if(p->x<-PLAYER_W){ if(g_room>0){--g_room;p->x=VW-PLAYER_W-2;} else p->x=0; }
-    else if(p->x>VW){ if(g_room<ROOM_COUNT-1){++g_room;p->x=2;} else p->x=VW-PLAYER_W; }
+    int roomw=room_world_width[g_room];
+    if(p->x<-PLAYER_W){ if(g_room>0){--g_room;p->x=room_world_width[g_room]-PLAYER_W-2;g_camera_x=room_world_width[g_room]-VW;} else p->x=0; }
+    else if(p->x>roomw){ if(g_room<ROOM_COUNT-1){++g_room;p->x=2;g_camera_x=0;} else p->x=roomw-PLAYER_W; }
     float old_y=p->y; p->vy+=GAME_GRAVITY; if(p->vy>GAME_MAX_FALL_SPEED)p->vy=GAME_MAX_FALL_SPEED; p->y+=p->vy; collide_room(p,old_y);
     if(p->y>VH+30) respawn(p);
 }
 
 static void damage_player(player_t *p,int dmg){
     if(p->invuln>0)return;
-    p->hp-=dmg; p->invuln=45; snd_hit();
+    p->hp-=dmg; p->invuln=45; snd_hit(); camera_shake(3,12);
     if(p->hp<=0){ p->hp=p->max_hp; respawn(p); }
 }
 static void update_enemies(player_t *p){
@@ -395,7 +458,7 @@ static void update_enemies(player_t *p){
 }
 static void player_attack(player_t *p,int facing){
     if(p->attack_cd>0)return;
-    p->attack_cd=20; p->attack_frames=6;
+    p->attack_cd=20; p->attack_frames=6; camera_shake(1,4);
     float ax=facing>0?p->x+PLAYER_W:p->x-12;
     for(int i=0;i<ENEMY_COUNT;++i){
         enemy_t *e=&enemies[i]; if(e->room!=g_room||!e->alive)continue;
@@ -472,6 +535,7 @@ int main(void){
         }
         if(g_npc_flash>0)--g_npc_flash; if(g_dialog_timer>0&&g_active_dialog<0)--g_dialog_timer;
         if(player.invuln>0)--player.invuln; if(player.attack_cd>0)--player.attack_cd; if(player.attack_frames>0)--player.attack_frames;
+        update_camera(&player);
         draw_room(&player,facing,won);fb2d_present(&g_fb);usb_do_poll();++g_frame_counter;
     }
     return 0;
