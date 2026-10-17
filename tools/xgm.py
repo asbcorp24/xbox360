@@ -35,7 +35,7 @@ def room(d,n):
 
 def validate(d):
     e=[]
-    if d.get("format") not in (2,3,4,5,6): e.append("format must be 2, 3, 4, 5 or 6")
+    if d.get("format") not in (2,3,4,5,6,7): e.append("format must be 2..7")
     vr=d.get("virtual_resolution")
     if not isinstance(vr,list) or len(vr)!=2 or not all(isinstance(x,int) and x>0 for x in vr): e.append("virtual_resolution must be [w,h]")
     p=d.get("player",{})
@@ -196,7 +196,7 @@ def cmd_list(a):
             for j,x in enumerate(r[k]): print(f"  {k[:-1]} {j}: {x}")
 
 def mutate(a, fn):
-    path=pp(a); d=load(path); fn(d); d["format"]=6; save(path,d)
+    path=pp(a); d=load(path); fn(d); d["format"]=7; save(path,d)
 
 def cmd_add_room(a): mutate(a,lambda d:d["rooms"].append({"name":a.name,"platforms":[{"x":0,"y":160,"w":320,"h":20}],"crystals":[],"tiles":[],"enemies":[],"npcs":[],"triggers":[],"doors":[],"teleports":[]}))
 def cmd_add_platform(a): mutate(a,lambda d:room(d,a.room)["platforms"].append({"x":a.x,"y":a.y,"w":a.w,"h":a.h}))
@@ -273,7 +273,7 @@ def cmd_add_item(a):
     def f(d):
         items=d.setdefault("items",[])
         if any(x.get("name")==a.name for x in items): raise SystemExit("Item already exists")
-        items.append({"name":a.name,"kind":a.kind,"power":a.power,"count":a.count})
+        items.append({"name":a.name,"kind":a.kind,"power":a.power,"count":a.count,"ammo":getattr(a,"ammo",None),"fire_rate":getattr(a,"fire_rate",10),"projectile_speed":getattr(a,"projectile_speed",5.0),"projectile_life":getattr(a,"projectile_life",70)})
     mutate(a,f)
 
 def cmd_add_pickup(a):
@@ -368,7 +368,7 @@ def parser():
     q.set_defaults(func=cmd_add_script)
     q=s.add_parser("set-exit"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--w",type=int); q.add_argument("--h",type=int); q.set_defaults(func=cmd_set_exit)
     q=s.add_parser("set-player-stats"); q.add_argument("--health",type=int); q.add_argument("--damage",type=int); q.set_defaults(func=cmd_set_player_stats)
-    q=s.add_parser("add-item"); q.add_argument("name"); q.add_argument("kind",choices=["key","consumable","weapon"]); q.add_argument("--power",type=int,default=0); q.add_argument("--count",type=int,default=0); q.set_defaults(func=cmd_add_item)
+    q=s.add_parser("add-item"); q.add_argument("name"); q.add_argument("kind",choices=["key","consumable","weapon","ammo","ranged"]); q.add_argument("--power",type=int,default=0); q.add_argument("--count",type=int,default=0); q.add_argument("--ammo"); q.add_argument("--fire-rate",type=int,default=10); q.add_argument("--projectile-speed",type=float,default=5.0); q.add_argument("--projectile-life",type=int,default=70); q.set_defaults(func=cmd_add_item)
     q=s.add_parser("add-pickup"); q.add_argument("room",type=int); q.add_argument("item"); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--qty",type=int,default=1); q.set_defaults(func=cmd_add_pickup)
     q=s.add_parser("add-dialog"); q.add_argument("id"); q.add_argument("text"); q.set_defaults(func=cmd_add_dialog)
     q=s.add_parser("add-choice"); q.add_argument("dialog"); q.add_argument("text"); q.add_argument("--next"); q.add_argument("--set-flag"); q.add_argument("--give-item"); q.set_defaults(func=cmd_add_choice)
