@@ -1,0 +1,6 @@
+build/
+*.elf
+*.elf32
+*.map
+.DS_Store
+.vscode/
