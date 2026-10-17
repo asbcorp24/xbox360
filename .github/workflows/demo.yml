@@ -1,0 +1,59 @@
+name: Build All Features Demo
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+    env:
+      DEVKITXENON: /usr/local/xenon
+      PATH: /usr/local/xenon/bin:/usr/local/xenon/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        run: |
+          apt-get update
+          apt-get install -y python3
+
+      - name: Check simulator and tools
+        run: |
+          python3 -m py_compile tools/simulator.py tools/xgm.py tools/scriptgen.py tools/rpggen.py tools/visualgen.py
+
+      - name: Validate demo
+        run: |
+          python3 tools/xgm.py --project demos/all_features/game.json validate
+
+      - name: Generate demo
+        run: |
+          python3 tools/xgm.py --project demos/all_features/game.json generate
+
+      - name: Build demo for Xbox 360
+        run: |
+          make clean || true
+          make
+
+      - name: Verify outputs
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Upload demo binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgm-all-features-demo
+          path: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
+          if-no-files-found: error
+          retention-days: 30
