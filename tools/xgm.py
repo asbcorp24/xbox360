@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import argparse, json, pathlib, shutil, struct, subprocess, sys, wave, zlib
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+DEFAULT_PROJECT = ROOT / "project" / "game.json"
+GAME_HEADER = ROOT / "source" / "generated_game.h"
+ASSET_HEADER = ROOT / "source" / "generated_assets.h"
+
+def load(path):
+    try: return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError: raise SystemExit(f"Project not found: {path}")
+    except json.JSONDecodeError as e: raise SystemExit(f"Invalid JSON: {e}")
+
+def save(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+
+def pp(args):
+    return pathlib.Path(args.project).resolve() if args.project else DEFAULT_PROJECT
+
+def validate(d):
+    e=[]
+    if d.get("format") != 2: e.append("format must be 2")
+    vr=d.get("virtual_resolution")
+    if not isinstance(vr,list) or len(vr)!=2 or not all(isinstance(x,int) and x>0 for x in vr): e.append("virtual_resolution must be [w,h]")
+    p=d.get("player",{})
+    for k in ("start","size"):
+        if not isinstance(p.get(k),list) or len(p[k])!=2: e.append(f"player.{k} must be [x,y]")
+    for k in ("speed","jump_speed","gravity","max_fall_speed"):
+        if not isinstance(p.get(k),(int,float)) or p[k] <= 0: e.append(f"player.{k} must be > 0")
+    rooms=d.get("rooms")
+    if not isinstance(rooms,list) or not rooms: e.append("rooms must be a non-empty array")
+    else:
+        for ri,r in enumerate(rooms):
+            if not isinstance(r,dict): e.append(f"rooms[{ri}] must be object"); continue
+            if not isinstance(r.get("platforms",[]),list): e.append(f"rooms[{ri}].platforms must be array")
+            if not isinstance(r.get("crystals",[]),list): e.append(f"rooms[{ri}].crystals must be array")
+    assets=d.get("assets",{})
+    if "player_sprite" not in assets: e.append("assets.player_sprite is required")
+    return e
+
+def cfloat(v): return f"{float(v):.4f}f"
+
+def decode_png(path):
+    b=path.read_bytes()
+    if b[:8] != b"\x89PNG\r\n\x1a\n": raise SystemExit(f"Not PNG: {path}")
+    pos=8; w=h=ctype=None; raw=b""
+    while pos < len(b):
+        n=struct.unpack(">I",b[pos:pos+4])[0]; typ=b[pos+4:pos+8]; dat=b[pos+8:pos+8+n]; pos += 12+n
+        if typ==b"IHDR":
+            w,h,depth,ctype,comp,filt,inter=struct.unpack(">IIBBBBB",dat)
+            if depth!=8 or ctype not in (2,6) or inter!=0: raise SystemExit("PNG must be 8-bit RGB/RGBA, non-interlaced")
+        elif typ==b"IDAT": raw += dat
+        elif typ==b"IEND": break
+    raw=zlib.decompress(raw)
+    bpp=4 if ctype==6 else 3
+    stride=w*bpp; out=[]; prev=bytearray(stride); p=0
+    def paeth(a,b,c):
+        q=a+b-c; pa=abs(q-a); pb=abs(q-b); pc=abs(q-c)
+        return a if pa<=pb and pa<=pc else b if pb<=pc else c
+    for _y in range(h):
+        ft=raw[p]; p+=1; scan=bytearray(raw[p:p+stride]); p+=stride
+        for x in range(stride):
+            a=scan[x-bpp] if x>=bpp else 0; up=prev[x]; ul=prev[x-bpp] if x>=bpp else 0
+            if ft==1: scan[x]=(scan[x]+a)&255
+            elif ft==2: scan[x]=(scan[x]+up)&255
+            elif ft==3: scan[x]=(scan[x]+((a+up)//2))&255
+            elif ft==4: scan[x]=(scan[x]+paeth(a,up,ul))&255
+            elif ft!=0: raise SystemExit(f"Unsupported PNG filter {ft}")
+        for x in range(w):
+            i=x*bpp
+            if ctype==6: out.extend(scan[i:i+4])
+            else: out.extend((scan[i],scan[i+1],scan[i+2],255))
+        prev=scan
+    return w,h,bytes(out)
+
+def read_wav(path):
+    with wave.open(str(path),"rb") as w:
+        if (w.getnchannels(),w.getsampwidth(),w.getframerate()) != (2,2,48000):
+            raise SystemExit(f"{path}: WAV must be 48kHz, signed 16-bit, stereo PCM")
+        if w.getcomptype() != "NONE": raise SystemExit(f"{path}: WAV must be uncompressed PCM")
+        return w.readframes(w.getnframes())
+
+def bytes_c(name,data, per=16):
+    rows=[]
+    for i in range(0,len(data),per):
+        rows.append("    "+", ".join(f"0x{x:02x}" for x in data[i:i+per]))
+    return f"static const unsigned char {name}[{len(data)}] = {{\n"+",\n".join(rows)+"\n};\n"
+
+def gen_game(d):
+    errs=validate(d)
+    if errs: raise SystemExit("INVALID:\n  - "+"\n  - ".join(errs))
+    vw,vh=d["virtual_resolution"]; p=d["player"]; rooms=d["rooms"]
+    plats=[]; crystals=[]
+    for ri,r in enumerate(rooms):
+        for x in r.get("platforms",[]): plats.append((ri,x))
+        for x in r.get("crystals",[]): crystals.append((ri,x))
+    ex=d["exit"]
+    plines=",\n".join(f"    {{ {ri}, {cfloat(x['x'])}, {cfloat(x['y'])}, {cfloat(x['w'])}, {cfloat(x['h'])} }}" for ri,x in plats)
+    clines=",\n".join(f"    {{ {ri}, {int(x['x'])}, {int(x['y'])}, 0 }}" for ri,x in crystals) or "    { 0, -1000, -1000, 1 }"
+    name=str(d.get("name","Xbox360 Game")).replace("\\","\\\\").replace('"','\\"')
+    return f"""/* AUTO-GENERATED by xgm. */
+#ifndef GENERATED_GAME_H
+#define GENERATED_GAME_H
+#define GAME_NAME "{name}"
+#define VW {vw}
+#define VH {vh}
+#define ROOM_COUNT {len(rooms)}
+#define PLAYER_W {int(p["size"][0])}
+#define PLAYER_H {int(p["size"][1])}
+#define PLAYER_START_ROOM {int(p.get("start_room",0))}
+#define PLAYER_START_X {cfloat(p["start"][0])}
+#define PLAYER_START_Y {cfloat(p["start"][1])}
+#define PLAYER_SPEED {cfloat(p["speed"])}
+#define PLAYER_JUMP_SPEED {cfloat(p["jump_speed"])}
+#define GAME_GRAVITY {cfloat(p["gravity"])}
+#define GAME_MAX_FALL_SPEED {cfloat(p["max_fall_speed"])}
+#define EXIT_ROOM {int(ex["room"])}
+#define EXIT_X {int(ex["x"])}
+#define EXIT_Y {int(ex["y"])}
+#define EXIT_W {int(ex["w"])}
+#define EXIT_H {int(ex["h"])}
+#define PLATFORM_COUNT {len(plats)}
+#define CRYSTAL_COUNT {len(crystals)}
+#define CRYSTAL_STORAGE_COUNT {max(1,len(crystals))}
+static const room_platform_t platforms[PLATFORM_COUNT] = {{
+{plines}
+}};
+static room_crystal_t crystals[CRYSTAL_STORAGE_COUNT] = {{
+{clines}
+}};
+#endif
+"""
+
+def gen_assets(d):
+    assets=d["assets"]
+    png=(ROOT/assets["player_sprite"]).resolve()
+    w,h,pixels=decode_png(png)
+    fw,fh=assets.get("player_frame_size",[8,12])
+    if w % fw or h % fh: raise SystemExit("player sprite sheet dimensions must be divisible by frame size")
+    frame_count=(w//fw)*(h//fh)
+    chunks=[
+        "/* AUTO-GENERATED by xgm. */\n#ifndef GENERATED_ASSETS_H\n#define GENERATED_ASSETS_H\n",
+        f"#define PLAYER_SHEET_W {w}\n#define PLAYER_SHEET_H {h}\n#define PLAYER_FRAME_W {fw}\n#define PLAYER_FRAME_H {fh}\n#define PLAYER_FRAME_COUNT {frame_count}\n",
+        bytes_c("player_sprite_rgba",pixels),
+    ]
+    sounds=assets.get("sounds",{})
+    for key in ("jump","collect"):
+        if key in sounds:
+            pcm=read_wav((ROOT/sounds[key]).resolve())
+            chunks.append(f"#define SOUND_{key.upper()}_LEN {len(pcm)}\n")
+            chunks.append(bytes_c(f"sound_{key}_pcm",pcm))
+        else:
+            chunks.append(f"#define SOUND_{key.upper()}_LEN 0\n")
+            chunks.append(f"static const unsigned char sound_{key}_pcm[1]={{0}};\n")
+    chunks.append("#endif\n")
+    return "".join(chunks)
+
+def cmd_info(a):
+    d=load(pp(a)); print(f"{d.get('name')} | rooms={len(d.get('rooms',[]))} | {d.get('virtual_resolution')}")
+    for i,r in enumerate(d.get("rooms",[])): print(f"room {i}: platforms={len(r.get('platforms',[]))} crystals={len(r.get('crystals',[]))}")
+
+def cmd_list(a):
+    d=load(pp(a))
+    for i,r in enumerate(d["rooms"]):
+        print(f"[room {i}: {r.get('name','')}]")
+        for j,p in enumerate(r.get("platforms",[])): print(f"  platform {j}: {p}")
+        for j,c in enumerate(r.get("crystals",[])): print(f"  crystal  {j}: {c}")
+
+def room(d,n):
+    if n<0 or n>=len(d["rooms"]): raise SystemExit(f"No room {n}")
+    return d["rooms"][n]
+
+def cmd_add_room(a):
+    path=pp(a); d=load(path); d["rooms"].append({"name":a.name,"platforms":[{"x":0,"y":160,"w":320,"h":20}],"crystals":[]}); save(path,d); print(len(d["rooms"])-1)
+
+def cmd_add_platform(a):
+    path=pp(a); d=load(path); room(d,a.room)["platforms"].append({"x":a.x,"y":a.y,"w":a.w,"h":a.h}); save(path,d)
+
+def cmd_add_crystal(a):
+    path=pp(a); d=load(path); room(d,a.room)["crystals"].append({"x":a.x,"y":a.y}); save(path,d)
+
+def cmd_set_player(a):
+    path=pp(a); d=load(path); d["player"]["start_room"]=a.room; d["player"]["start"]=[a.x,a.y]; save(path,d)
+
+def cmd_set_exit(a):
+    path=pp(a); d=load(path); ex=d.get("exit",{"w":11,"h":21}); d["exit"]={"room":a.room,"x":a.x,"y":a.y,"w":a.w or ex.get("w",11),"h":a.h or ex.get("h",21)}; save(path,d)
+
+def cmd_validate(a):
+    errs=validate(load(pp(a)))
+    if errs:
+        print("INVALID"); [print(" - "+x) for x in errs]; raise SystemExit(1)
+    print("OK")
+
+def cmd_generate(a):
+    d=load(pp(a)); GAME_HEADER.write_text(gen_game(d),encoding="utf-8"); ASSET_HEADER.write_text(gen_assets(d),encoding="utf-8")
+    print(GAME_HEADER); print(ASSET_HEADER)
+
+def cmd_build(a):
+    cmd_generate(a)
+    if a.docker:
+        if not shutil.which("docker"): raise SystemExit("docker not found")
+        cmd=["docker","run","--rm","-v",f"{ROOT.resolve()}:/app","-w","/app","free60/libxenon:latest","sh","-lc",
+             "export DEVKITXENON=/usr/local/xenon; export PATH=/usr/local/xenon/bin:/usr/local/xenon/usr/bin:$PATH; make clean && make"]
+    else:
+        if not shutil.which("make"): raise SystemExit("make not found")
+        subprocess.check_call(["make","clean"],cwd=ROOT); cmd=["make"]
+    subprocess.check_call(cmd,cwd=ROOT)
+
+def parser():
+    p=argparse.ArgumentParser(prog="xgm",description="Xbox360 Game Maker CLI")
+    p.add_argument("--project")
+    s=p.add_subparsers(dest="cmd",required=True)
+    for n,f in [("info",cmd_info),("list",cmd_list),("validate",cmd_validate),("generate",cmd_generate)]:
+        q=s.add_parser(n); q.set_defaults(func=f)
+    q=s.add_parser("add-room"); q.add_argument("name"); q.set_defaults(func=cmd_add_room)
+    q=s.add_parser("add-platform"); q.add_argument("room",type=int)
+    for k in ("x","y","w","h"): q.add_argument(k,type=int)
+    q.set_defaults(func=cmd_add_platform)
+    q=s.add_parser("add-crystal"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.set_defaults(func=cmd_add_crystal)
+    q=s.add_parser("set-player"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.set_defaults(func=cmd_set_player)
+    q=s.add_parser("set-exit"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--w",type=int); q.add_argument("--h",type=int); q.set_defaults(func=cmd_set_exit)
+    q=s.add_parser("build"); q.add_argument("--docker",action="store_true"); q.set_defaults(func=cmd_build)
+    return p
+
+if __name__=="__main__":
+    a=parser().parse_args(); a.func(a)
