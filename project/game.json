@@ -193,7 +193,8 @@
           "target_room": 2,
           "target_x": 18,
           "target_y": 145,
-          "requires_all_crystals": false
+          "requires_all_crystals": false,
+          "locked": true
         }
       ],
       "teleports": []
@@ -237,7 +238,18 @@
         }
       ],
       "tiles": [],
-      "enemies": [],
+      "enemies": [
+        {
+          "x": 205,
+          "y": 151,
+          "w": 8,
+          "h": 8,
+          "left": 190,
+          "right": 250,
+          "speed": 0.5,
+          "spawned": false
+        }
+      ],
       "npcs": [],
       "triggers": [],
       "doors": [],
@@ -316,6 +328,42 @@
           "cmd": "add_var",
           "name": "score",
           "value": 1
+        }
+      ]
+    },
+    {
+      "event": "on_collect",
+      "room": 1,
+      "target": 1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "open_door",
+          "room": 1,
+          "index": 0
+        },
+        {
+          "cmd": "dialog",
+          "text": "The roof door is open."
+        }
+      ]
+    },
+    {
+      "event": "on_enter",
+      "room": 2,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "spawn_enemy",
+          "room": 2,
+          "index": 0
+        },
+        {
+          "cmd": "dialog",
+          "text": "Something moved in the dark."
         }
       ]
     }
