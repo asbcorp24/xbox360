@@ -375,15 +375,16 @@ static void draw_room(const player_t *p,int facing,int won){
     int frame=!p->on_ground?3:((p->vx>.15f||p->vx<-.15f)?1+((g_frame_counter/8)&1):0);
     draw_sprite_frame(frame,iroundf_local(p->x),iroundf_local(p->y),facing<0);
 
-    draw_rect(6,6,72,11,fb2d_rgb(9,11,24));
-    for(int i=0;i<CRYSTAL_COUNT&&i<8;++i) if(crystals[i].collected) draw_crystal(9+i*7,8); else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
-    for(int i=0;i<ROOM_COUNT;++i) draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
-    draw_rect(6,20,44,6,fb2d_rgb(40,28,40)); draw_rect(8,22,(p->hp*40)/(p->max_hp?p->max_hp:1),2,fb2d_rgb(220,72,72));
     for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room){draw_rect(pickups[i].x,pickups[i].y,6,6,fb2d_rgb(230,190,70));}
     if(p->attack_frames>0){int ax=facing>0?iroundf_local(p->x)+PLAYER_W:iroundf_local(p->x)-10;draw_rect(ax,iroundf_local(p->y)+3,10,3,fb2d_rgb(245,230,180));}
 
     g_world_mode=0;
     draw_visual_layers(1);
+
+    draw_rect(6,6,72,11,fb2d_rgb(9,11,24));
+    for(int i=0;i<CRYSTAL_COUNT&&i<8;++i) if(crystals[i].collected) draw_crystal(9+i*7,8); else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
+    for(int i=0;i<ROOM_COUNT;++i) draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
+    draw_rect(6,20,44,6,fb2d_rgb(40,28,40)); draw_rect(8,22,(p->hp*40)/(p->max_hp?p->max_hp:1),2,fb2d_rgb(220,72,72));
 
     if(g_npc_flash>0||g_dialog_timer>0||g_active_dialog>=0){
         draw_rect(40,18,240,54,fb2d_rgb(245,240,220)); draw_rect(42,20,236,50,fb2d_rgb(252,249,235));
