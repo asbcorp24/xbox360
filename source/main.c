@@ -196,16 +196,22 @@ static void draw_text3x5(int x,int y,const char *s,uint32_t color,int max_chars)
     }
 }
 
-static void draw_sprite_frame(int frame,int x,int y,int flip){
-    if(frame<0) frame=0; if(frame>=PLAYER_FRAME_COUNT) frame=PLAYER_FRAME_COUNT-1;
-    int cols=PLAYER_SHEET_W/PLAYER_FRAME_W;
-    int fx=(frame%cols)*PLAYER_FRAME_W, fy=(frame/cols)*PLAYER_FRAME_H;
-    for(int sy=0;sy<PLAYER_FRAME_H;++sy) for(int sx=0;sx<PLAYER_FRAME_W;++sx){
-        int srcx=fx+(flip?(PLAYER_FRAME_W-1-sx):sx), srcy=fy+sy;
-        int i=(srcy*PLAYER_SHEET_W+srcx)*4;
-        if(player_sprite_rgba[i+3]<16) continue;
-        draw_pixel(x+sx,y+sy,fb2d_rgb(player_sprite_rgba[i],player_sprite_rgba[i+1],player_sprite_rgba[i+2]));
+static void draw_rgba_frame(const unsigned char *rgba,int sheet_w,int sheet_h,int frame_w,int frame_h,int frame_count,int frame,int x,int y,int flip){
+    (void)sheet_h;
+    if(frame<0) frame=0;
+    if(frame>=frame_count) frame=frame_count-1;
+    int cols=sheet_w/frame_w;
+    if(cols<1) cols=1;
+    int fx=(frame%cols)*frame_w, fy=(frame/cols)*frame_h;
+    for(int sy=0;sy<frame_h;++sy) for(int sx=0;sx<frame_w;++sx){
+        int srcx=fx+(flip?(frame_w-1-sx):sx), srcy=fy+sy;
+        int i=(srcy*sheet_w+srcx)*4;
+        if(rgba[i+3]<16) continue;
+        draw_pixel(x+sx,y+sy,fb2d_rgb(rgba[i],rgba[i+1],rgba[i+2]));
     }
+}
+static void draw_sprite_frame(int frame,int x,int y,int flip){
+    draw_rgba_frame(player_sprite_rgba,PLAYER_SHEET_W,PLAYER_SHEET_H,PLAYER_FRAME_W,PLAYER_FRAME_H,PLAYER_FRAME_COUNT,frame,x,y,flip);
 }
 
 static void play_pcm(const unsigned char *p,int len){ if(len>0 && xenon_sound_get_free()>=len) xenon_sound_submit((void*)p,len); }
@@ -436,16 +442,20 @@ static void draw_tile(const tile_cell_t *t){
 }
 
 static void draw_enemy(const enemy_t *e){
-    int x=iroundf_local(e->x),y=iroundf_local(e->y);
-    draw_rect(x,y,e->w,e->h,fb2d_rgb(190,60,72));
-    draw_rect(x+1,y+1,e->w-2,e->h-3,fb2d_rgb(238,93,93));
-    draw_pixel(x+(e->dir>0?e->w-3:2),y+2,fb2d_rgb(24,20,35));
+    int frame=(g_frame_counter/8)%4;
+    const unsigned char *rgba=enemy_walker_rgba;
+    int sw=WALKER_SHEET_W,sh=WALKER_SHEET_H,fw=WALKER_FRAME_W,fh=WALKER_FRAME_H,fc=WALKER_FRAME_COUNT;
+    if(e->type==2){rgba=enemy_charger_rgba;sw=CHARGER_SHEET_W;sh=CHARGER_SHEET_H;fw=CHARGER_FRAME_W;fh=CHARGER_FRAME_H;fc=CHARGER_FRAME_COUNT;}
+    else if(e->type==3){rgba=enemy_tank_rgba;sw=TANK_SHEET_W;sh=TANK_SHEET_H;fw=TANK_FRAME_W;fh=TANK_FRAME_H;fc=TANK_FRAME_COUNT;}
+    int x=iroundf_local(e->x)+(e->w-fw)/2;
+    int y=iroundf_local(e->y)+e->h-fh;
+    draw_rgba_frame(rgba,sw,sh,fw,fh,fc,frame,x,y,e->dir<0);
 }
 
 static void draw_npc(const npc_t *n){
-    draw_rect(n->x,n->y,n->w,n->h,fb2d_rgb(48,92,137));
-    draw_rect(n->x+1,n->y+1,n->w-2,n->h-4,fb2d_rgb(79,156,190));
-    draw_rect(n->x+2,n->y+2,n->w-4,3,fb2d_rgb(239,198,138));
+    int x=n->x+(n->w-NPC_FRAME_W)/2;
+    int y=n->y+n->h-NPC_FRAME_H;
+    draw_rgba_frame(npc_sprite_rgba,NPC_SHEET_W,NPC_SHEET_H,NPC_FRAME_W,NPC_FRAME_H,NPC_FRAME_COUNT,0,x,y,0);
 }
 
 static void draw_door(const door_t *d,int open){
@@ -484,8 +494,14 @@ static void draw_room(const player_t *p,int facing,int won){
     for(int i=0;i<TELEPORT_COUNT;++i) if(teleports[i].room==g_room) draw_teleport(&teleports[i]);
     if(g_room==EXIT_ROOM) draw_exit(total_collected()==CRYSTAL_COUNT);
 
-    int frame=!p->on_ground?3:((p->vx>.15f||p->vx<-.15f)?1+((g_frame_counter/8)&1):0);
-    draw_sprite_frame(frame,iroundf_local(p->x),iroundf_local(p->y),facing<0);
+    int frame=0;
+    if(p->attack_frames>0 && PLAYER_FRAME_COUNT>4) frame=4;
+    else if(p->fire_cd>0 && p->fire_cd<=3 && PLAYER_FRAME_COUNT>5) frame=5;
+    else if(!p->on_ground) frame=3;
+    else if(p->vx>.15f||p->vx<-.15f) frame=1+((g_frame_counter/8)&1);
+    int player_dx=iroundf_local(p->x)+(PLAYER_W-PLAYER_FRAME_W)/2;
+    int player_dy=iroundf_local(p->y)+PLAYER_H-PLAYER_FRAME_H;
+    draw_sprite_frame(frame,player_dx,player_dy,facing<0);
 
     for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room){draw_rect(pickups[i].x,pickups[i].y,6,6,fb2d_rgb(230,190,70));}
     draw_projectiles();
