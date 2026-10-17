@@ -32,8 +32,8 @@ jobs:
 
       - name: Generate PNG showcase
         run: |
-          python3 tools/xgm.py --project demos/png_showcase/game.json validate
-          python3 tools/xgm.py --project demos/png_showcase/game.json generate
+          python3 tools/xgm.py --project games/neon_district validate
+          python3 tools/xgm.py --project games/neon_district generate
 
       - name: Build
         run: make
