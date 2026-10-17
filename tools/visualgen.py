@@ -8,7 +8,7 @@ def bytes_c(name,data,per=16):
     rows=["    "+", ".join(f"0x{x:02x}" for x in data[i:i+per]) for i in range(0,len(data),per)]
     return f"static const unsigned char {name}[{len(data)}] = {{\n"+",\n".join(rows)+"\n};\n"
 
-def generate_visuals(d, root, decode_png):
+def generate_visuals(d, root, decode_png, legacy_root=None):
     assets={}
     layers=[]
     rooms=d.get("rooms",[])
@@ -21,7 +21,11 @@ def generate_visuals(d, root, decode_png):
                 img=x.get("image")
                 if not img: continue
                 if img not in assets:
-                    w,h,pix=decode_png((root/img).resolve())
+                    p=(root/img).resolve()
+                    if not p.exists() and legacy_root is not None:
+                        legacy=(legacy_root/img).resolve()
+                        if legacy.exists(): p=legacy
+                    w,h,pix=decode_png(p)
                     assets[img]=(len(assets),w,h,pix)
                 idx=assets[img][0]
                 default_speed=0.0 if key=="background" else (0.25 if key=="parallax" else 1.15)
