@@ -259,6 +259,9 @@ def parse_action(spec):
         return {"cmd":cmd,"room":int(parts[1]),"x":int(parts[2]),"y":int(parts[3])}
     if cmd=="dialog":
         return {"cmd":"dialog","text":spec[len("dialog:"):] if spec.startswith("dialog:") else ""}
+    if cmd=="emit_particles":
+        if len(parts)!=5: raise SystemExit("emit_particles format: emit_particles:type:count:x:y")
+        return {"cmd":"emit_particles","name":parts[1],"value":int(parts[2]),"x":int(parts[3]),"y":int(parts[4])}
     raise SystemExit(f"Unknown action: {cmd}")
 
 def cmd_add_script(a):
@@ -377,7 +380,7 @@ def parser():
     q.add_argument("event",choices=["on_enter","on_interact","on_collect"])
     q.add_argument("--room",type=int,default=-1); q.add_argument("--target",type=int,default=-1)
     q.add_argument("--if-flag"); q.add_argument("--if-var"); q.add_argument("--once",action="store_true")
-    q.add_argument("--do",action="append",required=True,help="Action, e.g. set_flag:key:1, add_var:score:1, open_door:1:0, spawn_enemy:0:0, change_room:2:20:145, dialog:Hello")
+    q.add_argument("--do",action="append",required=True,help="Action, e.g. set_flag:key:1, add_var:score:1, open_door:1:0, spawn_enemy:0:0, change_room:2:20:145, emit_particles:spark:12:160:120, dialog:Hello")
     q.set_defaults(func=cmd_add_script)
     q=s.add_parser("set-exit"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--w",type=int); q.add_argument("--h",type=int); q.set_defaults(func=cmd_set_exit)
     q=s.add_parser("set-player-stats"); q.add_argument("--health",type=int); q.add_argument("--damage",type=int); q.set_defaults(func=cmd_set_player_stats)
