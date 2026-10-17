@@ -38,13 +38,13 @@
     ],
     "sounds": {},
     "enemy_sprites": {
-      "shiv": "assets/enemies/shiv.png",
-      "brute": "assets/enemies/brute.png",
-      "hitman": "assets/enemies/hitman.png",
-      "merc": "assets/enemies/merc.png",
-      "bully": "assets/enemies/bully.png",
-      "bouncer": "assets/enemies/bouncer.png",
-      "boss": "assets/enemies/boss.png"
+      "shiv": "assets/player/player.png",
+      "brute": "assets/player/player.png",
+      "hitman": "assets/player/player.png",
+      "merc": "assets/player/player.png",
+      "bully": "assets/player/player.png",
+      "bouncer": "assets/player/player.png",
+      "boss": "assets/player/player.png"
     },
     "enemy_frame_size": [
       64,
