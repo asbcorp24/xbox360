@@ -24,6 +24,8 @@ export PATH="$PATH:$DEVKITXENON/bin:$DEVKITXENON/usr/bin"
 make
 ```
 
+GitHub Actions also builds the project automatically on pushes and pull requests.
+
 Expected outputs:
 
 - `xbox360-pixel.elf`
