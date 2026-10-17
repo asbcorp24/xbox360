@@ -406,6 +406,7 @@ def cmd_play(a):
     simulator_main(str(pp(a)))
 
 def cmd_build(a):
+    project_file=pp(a)
     cmd_generate(a)
     if a.docker:
         if not shutil.which("docker"): raise SystemExit("docker not found")
@@ -413,6 +414,13 @@ def cmd_build(a):
     else:
         subprocess.check_call(["make","clean"],cwd=ROOT); cmd=["make"]
     subprocess.check_call(cmd,cwd=ROOT)
+    out_dir=project_file.parent/"build"
+    out_dir.mkdir(parents=True,exist_ok=True)
+    for name in ("xbox360-pixel.elf","xbox360-pixel.elf32"):
+        src=ROOT/name
+        if src.exists():
+            shutil.copy2(src,out_dir/name)
+            print(out_dir/name)
 
 def parser():
     p=argparse.ArgumentParser(prog="xgm",description="Xbox360 Game Maker CLI"); p.add_argument("--project"); s=p.add_subparsers(dest="cmd",required=True)
