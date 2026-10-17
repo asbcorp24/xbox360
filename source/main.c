@@ -450,6 +450,13 @@ static void draw_enemy(const enemy_t *e){
     int sw=WALKER_SHEET_W,sh=WALKER_SHEET_H,fw=WALKER_FRAME_W,fh=WALKER_FRAME_H,fc=WALKER_FRAME_COUNT,has=WALKER_HAS_SPRITE;
     if(e->type==2){rgba=enemy_charger_rgba;sw=CHARGER_SHEET_W;sh=CHARGER_SHEET_H;fw=CHARGER_FRAME_W;fh=CHARGER_FRAME_H;fc=CHARGER_FRAME_COUNT;has=CHARGER_HAS_SPRITE;}
     else if(e->type==3){rgba=enemy_tank_rgba;sw=TANK_SHEET_W;sh=TANK_SHEET_H;fw=TANK_FRAME_W;fh=TANK_FRAME_H;fc=TANK_FRAME_COUNT;has=TANK_HAS_SPRITE;}
+    else if(e->type==4){rgba=enemy_shiv_rgba;sw=SHIV_SHEET_W;sh=SHIV_SHEET_H;fw=SHIV_FRAME_W;fh=SHIV_FRAME_H;fc=SHIV_FRAME_COUNT;has=SHIV_HAS_SPRITE;}
+    else if(e->type==5){rgba=enemy_brute_rgba;sw=BRUTE_SHEET_W;sh=BRUTE_SHEET_H;fw=BRUTE_FRAME_W;fh=BRUTE_FRAME_H;fc=BRUTE_FRAME_COUNT;has=BRUTE_HAS_SPRITE;}
+    else if(e->type==6){rgba=enemy_hitman_rgba;sw=HITMAN_SHEET_W;sh=HITMAN_SHEET_H;fw=HITMAN_FRAME_W;fh=HITMAN_FRAME_H;fc=HITMAN_FRAME_COUNT;has=HITMAN_HAS_SPRITE;}
+    else if(e->type==7){rgba=enemy_merc_rgba;sw=MERC_SHEET_W;sh=MERC_SHEET_H;fw=MERC_FRAME_W;fh=MERC_FRAME_H;fc=MERC_FRAME_COUNT;has=MERC_HAS_SPRITE;}
+    else if(e->type==8){rgba=enemy_bully_rgba;sw=BULLY_SHEET_W;sh=BULLY_SHEET_H;fw=BULLY_FRAME_W;fh=BULLY_FRAME_H;fc=BULLY_FRAME_COUNT;has=BULLY_HAS_SPRITE;}
+    else if(e->type==9){rgba=enemy_bouncer_rgba;sw=BOUNCER_SHEET_W;sh=BOUNCER_SHEET_H;fw=BOUNCER_FRAME_W;fh=BOUNCER_FRAME_H;fc=BOUNCER_FRAME_COUNT;has=BOUNCER_HAS_SPRITE;}
+    else if(e->type==10){rgba=enemy_boss_rgba;sw=BOSS_SHEET_W;sh=BOSS_SHEET_H;fw=BOSS_FRAME_W;fh=BOSS_FRAME_H;fc=BOSS_FRAME_COUNT;has=BOSS_HAS_SPRITE;}
     if(has){
         int x=iroundf_local(e->x)+(e->w-fw)/2;
         int y=iroundf_local(e->y)+e->h-fh;
@@ -641,8 +648,9 @@ static void update_enemies(player_t *p){
     for(int i=0;i<ENEMY_COUNT;++i){
         enemy_t *e=&enemies[i]; if(e->room!=g_room||!e->alive) continue;
         float sp=e->speed;
-        if(e->type==2 && (p->x-e->x<70.0f&&p->x-e->x>-70.0f)) e->dir=(p->x>=e->x)?1:-1, sp*=1.8f;
-        if(e->type==3) sp*=0.55f;
+        if((e->type==2||e->type==4||e->type==6||e->type==8||e->type==10) && (p->x-e->x<90.0f&&p->x-e->x>-90.0f)) e->dir=(p->x>=e->x)?1:-1, sp*=1.65f;
+        if(e->type==3||e->type==5||e->type==9) sp*=0.58f;
+        if(e->type==7) sp*=0.82f;
         e->x+=sp*e->dir; if(e->x<=e->left){e->x=e->left;e->dir=1;} if(e->x>=e->right){e->x=e->right;e->dir=-1;}
         if(overlaps(p->x,p->y,PLAYER_W,PLAYER_H,e->x,e->y,e->w,e->h)){ damage_player(p,e->damage); }
     }
