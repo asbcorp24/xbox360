@@ -180,12 +180,14 @@ def gen_assets(d):
 
     def add_sheet(prefix, symbol, path, frame_size):
         if path:
+            chunks.append(f"#define {prefix}_HAS_SPRITE 1\n")
             w,h,pix=decode_png((ROOT/path).resolve())
             fw,fh=frame_size
             if w%fw or h%fh: raise SystemExit(f"{path}: sprite sheet dimensions must be divisible by frame size")
             chunks.append(f"#define {prefix}_SHEET_W {w}\n#define {prefix}_SHEET_H {h}\n#define {prefix}_FRAME_W {fw}\n#define {prefix}_FRAME_H {fh}\n#define {prefix}_FRAME_COUNT {(w//fw)*(h//fh)}\n")
             chunks.append(bytes_c(symbol,pix))
         else:
+            chunks.append(f"#define {prefix}_HAS_SPRITE 0\n")
             chunks.append(f"#define {prefix}_SHEET_W 1\n#define {prefix}_SHEET_H 1\n#define {prefix}_FRAME_W 1\n#define {prefix}_FRAME_H 1\n#define {prefix}_FRAME_COUNT 1\n")
             chunks.append(f"static const unsigned char {symbol}[4]={{0,0,0,0}};\n")
 
