@@ -53,8 +53,6 @@
   },
   "flow": {
     "boot_frames": 75,
-    "boot_image": "assets/ui/boot.png",
-    "title_image": "assets/ui/title.png",
     "title": "IRON WARRANT",
     "subtitle": "PRESS A / START",
     "game_over": "YOU WENT DOWN",
