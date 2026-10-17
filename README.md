@@ -620,8 +620,8 @@ Projects can define a complete game lifecycle through the optional `flow` sectio
 {
   "flow": {
     "boot_frames": 90,
-    "boot_image": "assets/showcase/ui/boot.png",
-    "title_image": "assets/showcase/ui/title.png",
+    "boot_image": "games/neon_district/assets/ui/boot.png",
+    "title_image": "games/neon_district/assets/ui/title.png",
     "title": "NEON DISTRICT",
     "subtitle": "PRESS A / START",
     "game_over": "GAME OVER",
@@ -669,18 +669,60 @@ CREDITS          Space/Enter/B = title
 The PNG showcase includes 320x180 boot/title artwork under:
 
 ```text
-assets/showcase/ui/boot.png
-assets/showcase/ui/title.png
+games/neon_district/assets/ui/boot.png
+games/neon_district/assets/ui/title.png
 ```
 
 If a project does not define the optional flow images, the runtime uses text/fallback screens and remains compatible with older projects.
+
+
+
+## Self-contained game folders
+
+A complete game now lives in one folder. The canonical demo is:
+
+```text
+games/
+└── neon_district/
+    ├── game.json
+    ├── README.md
+    ├── play.bat
+    ├── build.bat
+    └── assets/
+        ├── player/
+        ├── enemies/
+        ├── npc/
+        ├── backgrounds/
+        └── ui/
+```
+
+Asset paths inside `game.json` are resolved relative to that game's folder. Legacy root-relative paths remain supported as a fallback for older projects.
+
+Run directly from the game folder:
+
+```bat
+games\neon_district\play.bat
+```
+
+Build it for Xbox 360:
+
+```bat
+games\neon_district\build.bat
+```
+
+Or from the repository root:
+
+```bat
+python tools\xgm.py --project games\neon_district play
+python tools\xgm.py --project games\neon_district build --docker
+```
 
 ## PNG showcase demo
 
 A separate visual showcase uses real PNG sprite sheets and layered PNG backgrounds:
 
 ```text
-demos/png_showcase/game.json
+games/neon_district/game.json
 ```
 
 Windows:
@@ -705,15 +747,15 @@ Linux / MSYS2:
 PNG assets:
 
 ```text
-assets/showcase/player_showcase.png
-assets/showcase/enemy_walker.png
-assets/showcase/enemy_charger.png
-assets/showcase/enemy_tank.png
-assets/showcase/npc_guide.png
-assets/showcase/bg_sky.png
-assets/showcase/bg_mountains.png
-assets/showcase/bg_city.png
-assets/showcase/fg_fence.png
+games/neon_district/assets/player/player.png
+games/neon_district/assets/enemies/walker.png
+games/neon_district/assets/enemies/charger.png
+games/neon_district/assets/enemies/tank.png
+games/neon_district/assets/npc/guide.png
+games/neon_district/assets/backgrounds/sky.png
+games/neon_district/assets/backgrounds/mountains.png
+games/neon_district/assets/backgrounds/city.png
+games/neon_district/assets/backgrounds/foreground.png
 ```
 
 The showcase uses:
