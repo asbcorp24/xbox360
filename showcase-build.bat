@@ -1,4 +1,4 @@
 @echo off
-python "%~dp0tools\xgm.py" --project "%~dp0demos\png_showcase\game.json" validate
+python "%~dp0tools\xgm.py" --project "%~dp0games\neon_district" validate
 if errorlevel 1 exit /b %errorlevel%
-python "%~dp0tools\xgm.py" --project "%~dp0demos\png_showcase\game.json" build --docker
+python "%~dp0tools\xgm.py" --project "%~dp0games\neon_district" build --docker
