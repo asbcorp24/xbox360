@@ -9,7 +9,6 @@ The first prototype is a tiny platform/collect game rendered into a virtual 320x
 - Left stick / D-pad: move
 - A: jump
 - Start: restart
-- Back: quit to an idle screen
 
 ## Goal
 
