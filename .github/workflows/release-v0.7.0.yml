@@ -1,0 +1,73 @@
+name: First Release v0.7.0
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Release v0.7.0'
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+    env:
+      DEVKITXENON: /usr/local/xenon
+      PATH: /usr/local/xenon/bin:/usr/local/xenon/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        run: |
+          apt-get update
+          apt-get install -y python3
+
+      - name: Check Python tools
+        run: |
+          python3 -m py_compile tools/simulator.py tools/xgm.py tools/scriptgen.py tools/rpggen.py tools/visualgen.py
+
+      - name: Generate all-features demo
+        run: |
+          python3 tools/xgm.py --project demos/all_features/game.json validate
+          python3 tools/xgm.py --project demos/all_features/game.json generate
+
+      - name: Build
+        run: make
+
+      - name: Verify
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Create v0.7.0 release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.7.0
+          target_commitish: main
+          name: Xbox360 Game Maker v0.7.0
+          body: |
+            Shooting and particle-system release.
+
+            New:
+            - ranged weapon item type
+            - ammo item type and ammo pickups
+            - projectile pool (32)
+            - RB / Right Trigger shooting
+            - fire rate, projectile speed and lifetime
+            - projectile collision with enemies and solid world
+            - ranged damage and enemy death
+            - particle pool (128)
+            - smoke, spark, dust and fire emitters
+            - configurable rate/life/speed/spread/gravity/RGB
+            - muzzle flash, bullet impacts, melee impacts and death bursts
+            - scripted emit_particles action
+            - matching Windows Simulator support
+            - all-features demo includes pistol, ammo and particle emitters
+          files: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
