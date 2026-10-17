@@ -193,6 +193,14 @@ static int weapon_damage(void){
     for(int i=0;i<RPG_ITEM_COUNT;++i) if(items[i].kind==3&&items[i].count>0&&items[i].power>best) best=items[i].power;
     return best;
 }
+static void use_consumable(player_t *p){
+    for(int i=0;i<RPG_ITEM_COUNT;++i){
+        if(items[i].kind==2&&items[i].count>0){
+            p->hp+=items[i].power; if(p->hp>p->max_hp)p->hp=p->max_hp;
+            --items[i].count; xenon_tone(840,55,XENON_TONE_AMPLITUDE_25); return;
+        }
+    }
+}
 static void start_dialog(int node){
     if(node<0||node>=DIALOG_NODE_COUNT)return;
     g_active_dialog=node; g_dialog_choice=0; g_dialog_text=dialog_nodes[node].text; g_dialog_timer=999999;
@@ -312,7 +320,7 @@ static void draw_room(const player_t *p,int facing,int won){
     draw_rect(6,6,72,11,fb2d_rgb(9,11,24));
     for(int i=0;i<CRYSTAL_COUNT&&i<8;++i) if(crystals[i].collected) draw_crystal(9+i*7,8); else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
     for(int i=0;i<ROOM_COUNT;++i) draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
-    draw_rect(6,20,44,6,fb2d_rgb(40,28,40)); draw_rect(8,22,(player_t*)p?((p->hp*40)/(p->max_hp?p->max_hp:1)):0,2,fb2d_rgb(220,72,72));
+    draw_rect(6,20,44,6,fb2d_rgb(40,28,40)); draw_rect(8,22,(p->hp*40)/(p->max_hp?p->max_hp:1),2,fb2d_rgb(220,72,72));
     for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room){draw_rect(pickups[i].x,pickups[i].y,6,6,fb2d_rgb(230,190,70));}
     if(p->attack_frames>0){int ax=facing>0?iroundf_local(p->x)+PLAYER_W:iroundf_local(p->x)-10;draw_rect(ax,iroundf_local(p->y)+3,10,3,fb2d_rgb(245,230,180));}
 
@@ -449,6 +457,7 @@ int main(void){
                 if(left&&!right){player.vx=-PLAYER_SPEED;facing=-1;} else if(right&&!left){player.vx=PLAYER_SPEED;facing=1;} else {player.vx*=.55f;if(player.vx>-.08f&&player.vx<.08f)player.vx=0;}
                 if(pad.a&&!prev.a&&player.on_ground){player.vy=-PLAYER_JUMP_SPEED;player.on_ground=0;snd_jump();}
                 if(pad.x&&!prev.x) player_attack(&player,facing);
+                if(pad.y&&!prev.y) use_consumable(&player);
                 update_player(&player); update_enemies(&player);
                 for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].room==g_room&&!crystals[i].collected&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){crystals[i].collected=1;snd_collect();run_script_event(EVT_ON_COLLECT,g_room,local_crystal_index(i),&player);}
                 for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,pickups[i].x,pickups[i].y,6,6)){pickups[i].collected=1;inventory_add(pickups[i].item_index,pickups[i].qty);snd_collect();}
