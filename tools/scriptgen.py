@@ -50,8 +50,8 @@ def generate_scripts(d):
         })
 
     def arr(lines,fallback): return ",\n".join(lines) if lines else fallback
-    fl=arr([f'    {{ "{esc(k)}", {int(v)} }}' for k,v in flags.items()],'    { "", 0 }')
-    vl=arr([f'    {{ "{esc(k)}", {int(v)} }}' for k,v in vars_.items()],'    { "", 0 }')
+    fl=arr([f'    {{ "{esc(k)}", {int(v)}, {int(v)} }}' for k,v in flags.items()],'    { "", 0, 0 }')
+    vl=arr([f'    {{ "{esc(k)}", {int(v)}, {int(v)} }}' for k,v in vars_.items()],'    { "", 0, 0 }')
     al=arr([f'    {{ {a["cmd"]}, "{esc(a["name"])}", {a["value"]}, {a["room"]}, {a["index"]}, {a["x"]}, {a["y"]}, "{esc(a["text"])}" }}' for a in actions],
            '    { 0, "", 0, -1, -1, 0, 0, "" }')
     el=arr([f'    {{ {e["event"]}, {e["room"]}, {e["target"]}, {e["once"]}, 0, {e["cond_type"]}, "{esc(e["cond_name"])}", {e["cond_op"]}, {e["cond_value"]}, {e["action_start"]}, {e["action_count"]} }}' for e in events],
