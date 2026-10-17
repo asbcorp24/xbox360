@@ -1,5 +1,5 @@
 {
-  "format": 5,
+  "format": 6,
   "name": "Pixel Run 360",
   "virtual_resolution": [
     320,
@@ -44,7 +44,7 @@
         {
           "x": 0,
           "y": 160,
-          "w": 320,
+          "w": 480,
           "h": 20
         },
         {
@@ -142,7 +142,55 @@
           "y": 148,
           "qty": 1
         }
-      ]
+      ],
+      "world_width": 480,
+      "camera": {
+        "smoothing": 0.18,
+        "deadzone": 48
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/bg_sky.png",
+            "speed_x": 0,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/bg_city_far.png",
+            "speed_x": 0.18,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 90,
+            "order": 1
+          },
+          {
+            "image": "assets/bg_city_near.png",
+            "speed_x": 0.45,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 95,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/fg_fence.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 116,
+            "order": 10
+          }
+        ]
+      }
     },
     {
       "name": "Midnight Roofs",
@@ -150,7 +198,7 @@
         {
           "x": 0,
           "y": 160,
-          "w": 320,
+          "w": 400,
           "h": 20
         },
         {
@@ -234,7 +282,55 @@
           "y": 82,
           "qty": 1
         }
-      ]
+      ],
+      "world_width": 400,
+      "camera": {
+        "smoothing": 0.18,
+        "deadzone": 48
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/bg_sky.png",
+            "speed_x": 0,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/bg_city_far.png",
+            "speed_x": 0.18,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 90,
+            "order": 1
+          },
+          {
+            "image": "assets/bg_city_near.png",
+            "speed_x": 0.45,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 95,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/fg_fence.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 116,
+            "order": 10
+          }
+        ]
+      }
     },
     {
       "name": "Exit",
@@ -242,7 +338,7 @@
         {
           "x": 0,
           "y": 160,
-          "w": 320,
+          "w": 400,
           "h": 20
         },
         {
@@ -304,7 +400,55 @@
           "target_y": 145
         }
       ],
-      "pickups": []
+      "pickups": [],
+      "world_width": 400,
+      "camera": {
+        "smoothing": 0.18,
+        "deadzone": 48
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/bg_sky.png",
+            "speed_x": 0,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/bg_city_far.png",
+            "speed_x": 0.18,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 90,
+            "order": 1
+          },
+          {
+            "image": "assets/bg_city_near.png",
+            "speed_x": 0.45,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 95,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/fg_fence.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_y": 116,
+            "order": 10
+          }
+        ]
+      }
     }
   ],
   "tile_size": 16,
