@@ -314,6 +314,10 @@ class Simulator:
                 self.room=rr; self.x=float(a.get("x",0)); self.y=float(a.get("y",0)); self.vx=self.vy=0; self.camera_x=0
         elif cmd=="dialog":
             self.message=a.get("text","")
+        elif cmd=="emit_particles":
+            typ=a.get("name","spark")
+            colors={"smoke":"#b8b8b8","spark":"#ffd060","dust":"#b47c65","fire":"#ff7b32"}
+            self.particle_burst(float(a.get("x",self.x)),float(a.get("y",self.y)),typ,int(a.get("value",8)),colors.get(typ,"#cccccc"))
 
     def run_event(self, event, target=-1):
         scripts=self.data.get("scripts",[])
