@@ -11,23 +11,31 @@
 
 #include "fb2d.h"
 
-typedef struct { float x,y,w,h; } rectf_t;
 typedef struct { int room; float x,y,w,h; } room_platform_t;
 typedef struct { int room; int x,y; int collected; } room_crystal_t;
+typedef struct { int room,x,y,tile,solid; } tile_cell_t;
+typedef struct { int room; float x,y; int w,h; float left,right,speed; int dir,alive; } enemy_t;
+typedef struct { int room,x,y,w,h; const char *message; } npc_t;
+typedef struct { int room,x,y,w,h,target_room,target_x,target_y,once,fired; const char *action; } trigger_t;
+typedef struct { int room,x,y,w,h,target_room,target_x,target_y,requires_all; } door_t;
+typedef struct { int room,x,y,w,h,target_room,target_x,target_y; } teleport_t;
 typedef struct { float x,y,vx,vy; int on_ground; } player_t;
 
 #include "generated_game.h"
 #include "generated_assets.h"
 
 static fb2d_t g_fb;
-static int g_scale, g_off_x, g_off_y;
-static int g_room = PLAYER_START_ROOM;
-static unsigned g_frame_counter = 0;
+static int g_scale,g_off_x,g_off_y;
+static int g_room=PLAYER_START_ROOM;
+static unsigned g_frame_counter=0;
+static int g_npc_flash=0;
+static int g_teleport_cooldown=0;
+static int g_checkpoint_room=PLAYER_START_ROOM;
+static float g_checkpoint_x=PLAYER_START_X,g_checkpoint_y=PLAYER_START_Y;
 
-static int iroundf_local(float v){ return (int)(v + (v>=0.0f?0.5f:-0.5f)); }
-
+static int iroundf_local(float v){ return (int)(v+(v>=0.0f?0.5f:-0.5f)); }
 static int overlaps(float ax,float ay,float aw,float ah,float bx,float by,float bw,float bh){
-    return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+    return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by;
 }
 
 static void draw_rect_screen(int x,int y,int w,int h,uint32_t color){
@@ -40,182 +48,201 @@ static void draw_rect_screen(int x,int y,int w,int h,uint32_t color){
         for(int xx=0;xx<w;++xx) row[xx]=color;
     }
 }
-
-static void draw_rect(int x,int y,int w,int h,uint32_t color){
-    draw_rect_screen(g_off_x+x*g_scale,g_off_y+y*g_scale,w*g_scale,h*g_scale,color);
+static void draw_rect(int x,int y,int w,int h,uint32_t c){
+    draw_rect_screen(g_off_x+x*g_scale,g_off_y+y*g_scale,w*g_scale,h*g_scale,c);
 }
-
-static void draw_pixel(int x,int y,uint32_t color){ draw_rect(x,y,1,1,color); }
+static void draw_pixel(int x,int y,uint32_t c){ draw_rect(x,y,1,1,c); }
 
 static void draw_sprite_frame(int frame,int x,int y,int flip){
-    if(frame<0) frame=0;
-    if(frame>=PLAYER_FRAME_COUNT) frame=PLAYER_FRAME_COUNT-1;
+    if(frame<0) frame=0; if(frame>=PLAYER_FRAME_COUNT) frame=PLAYER_FRAME_COUNT-1;
     int cols=PLAYER_SHEET_W/PLAYER_FRAME_W;
-    int fx=(frame%cols)*PLAYER_FRAME_W;
-    int fy=(frame/cols)*PLAYER_FRAME_H;
-    for(int sy=0;sy<PLAYER_FRAME_H;++sy){
-        for(int sx=0;sx<PLAYER_FRAME_W;++sx){
-            int srcx=fx+(flip?(PLAYER_FRAME_W-1-sx):sx);
-            int srcy=fy+sy;
-            int i=(srcy*PLAYER_SHEET_W+srcx)*4;
-            unsigned char a=player_sprite_rgba[i+3];
-            if(a<16) continue;
-            draw_pixel(x+sx,y+sy,fb2d_rgb(player_sprite_rgba[i],player_sprite_rgba[i+1],player_sprite_rgba[i+2]));
-        }
+    int fx=(frame%cols)*PLAYER_FRAME_W, fy=(frame/cols)*PLAYER_FRAME_H;
+    for(int sy=0;sy<PLAYER_FRAME_H;++sy) for(int sx=0;sx<PLAYER_FRAME_W;++sx){
+        int srcx=fx+(flip?(PLAYER_FRAME_W-1-sx):sx), srcy=fy+sy;
+        int i=(srcy*PLAYER_SHEET_W+srcx)*4;
+        if(player_sprite_rgba[i+3]<16) continue;
+        draw_pixel(x+sx,y+sy,fb2d_rgb(player_sprite_rgba[i],player_sprite_rgba[i+1],player_sprite_rgba[i+2]));
     }
 }
 
+static void play_pcm(const unsigned char *p,int len){ if(len>0 && xenon_sound_get_free()>=len) xenon_sound_submit((void*)p,len); }
+static void snd_jump(void){ if(SOUND_JUMP_LEN) play_pcm(sound_jump_pcm,SOUND_JUMP_LEN); else xenon_tone(620,35,XENON_TONE_AMPLITUDE_25); }
+static void snd_collect(void){ if(SOUND_COLLECT_LEN) play_pcm(sound_collect_pcm,SOUND_COLLECT_LEN); else xenon_tone(1100,45,XENON_TONE_AMPLITUDE_25); }
+static void snd_hit(void){ if(SOUND_HIT_LEN) play_pcm(sound_hit_pcm,SOUND_HIT_LEN); else xenon_tone(180,90,XENON_TONE_AMPLITUDE_50); }
+static void snd_door(void){ if(SOUND_DOOR_LEN) play_pcm(sound_door_pcm,SOUND_DOOR_LEN); else xenon_tone(760,55,XENON_TONE_AMPLITUDE_25); }
+static void snd_npc(void){ if(SOUND_NPC_LEN) play_pcm(sound_npc_pcm,SOUND_NPC_LEN); else xenon_tone(900,35,XENON_TONE_AMPLITUDE_25); }
+
 static void draw_crystal(int x,int y){
-    uint32_t d=fb2d_rgb(52,107,123), m=fb2d_rgb(55,215,225), h=fb2d_rgb(194,255,250);
+    uint32_t d=fb2d_rgb(52,107,123),m=fb2d_rgb(55,215,225),h=fb2d_rgb(194,255,250);
     draw_rect(x+2,y,2,1,h); draw_rect(x+1,y+1,4,1,m); draw_rect(x,y+2,6,3,m);
     draw_rect(x+1,y+5,4,1,d); draw_rect(x+2,y+6,2,1,d); draw_pixel(x+1,y+2,h);
 }
+static int total_collected(void){ int n=0; for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].collected) ++n; return n; }
 
-static int total_collected(void){
-    int n=0; for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].collected) ++n; return n;
+static void draw_tile(const tile_cell_t *t){
+    int x=t->x*TILE_SIZE,y=t->y*TILE_SIZE;
+    uint32_t a=t->tile==2?fb2d_rgb(72,58,95):fb2d_rgb(64,72,91);
+    uint32_t b=t->solid?fb2d_rgb(132,117,128):fb2d_rgb(91,72,118);
+    draw_rect(x,y,TILE_SIZE,TILE_SIZE,a);
+    draw_rect(x,y,TILE_SIZE,2,b);
+    draw_rect(x+2,y+4,TILE_SIZE-4,2,b);
 }
 
-static void play_pcm(const unsigned char *pcm,int len){
-    if(len>0 && xenon_sound_get_free()>=len) xenon_sound_submit((void*)pcm,len);
+static void draw_enemy(const enemy_t *e){
+    int x=iroundf_local(e->x),y=iroundf_local(e->y);
+    draw_rect(x,y,e->w,e->h,fb2d_rgb(190,60,72));
+    draw_rect(x+1,y+1,e->w-2,e->h-3,fb2d_rgb(238,93,93));
+    draw_pixel(x+(e->dir>0?e->w-3:2),y+2,fb2d_rgb(24,20,35));
 }
-static void play_jump_sound(void){
-    if(SOUND_JUMP_LEN>0) play_jump_sound();
-    else xenon_tone(620,35,XENON_TONE_AMPLITUDE_25);
+
+static void draw_npc(const npc_t *n){
+    draw_rect(n->x,n->y,n->w,n->h,fb2d_rgb(48,92,137));
+    draw_rect(n->x+1,n->y+1,n->w-2,n->h-4,fb2d_rgb(79,156,190));
+    draw_rect(n->x+2,n->y+2,n->w-4,3,fb2d_rgb(239,198,138));
 }
-static void play_collect_sound(void){
-    if(SOUND_COLLECT_LEN>0) play_pcm(sound_collect_pcm,SOUND_COLLECT_LEN);
-    else xenon_tone(1100,45,XENON_TONE_AMPLITUDE_25);
+
+static void draw_door(const door_t *d,int open){
+    uint32_t c=open?fb2d_rgb(83,205,126):fb2d_rgb(97,72,116);
+    draw_rect(d->x-2,d->y-2,d->w+4,d->h+2,fb2d_rgb(31,28,46));
+    draw_rect(d->x,d->y,d->w,d->h,c);
+    draw_pixel(d->x+d->w-3,d->y+d->h/2,fb2d_rgb(236,210,128));
+}
+
+static void draw_teleport(const teleport_t *t){
+    draw_rect(t->x,t->y,t->w,t->h,fb2d_rgb(58,44,91));
+    draw_rect(t->x+2,t->y+2,t->w-4,t->h-4,fb2d_rgb(139,86,220));
+    if((g_frame_counter/8)&1) draw_rect(t->x+4,t->y+4,t->w-8,t->h-8,fb2d_rgb(203,160,255));
 }
 
 static void draw_exit(int open){
-    int x=EXIT_X,y=EXIT_Y;
-    uint32_t frame=fb2d_rgb(35,31,57), shut=fb2d_rgb(89,74,120), glow=fb2d_rgb(109,255,156);
-    draw_rect(x-2,y-3,EXIT_W+4,EXIT_H+3,frame);
-    draw_rect(x,y,EXIT_W,EXIT_H,open?glow:shut);
-    if(open) draw_rect(x+3,y+3,EXIT_W-6,EXIT_H-6,fb2d_rgb(213,255,211));
+    uint32_t c=open?fb2d_rgb(109,255,156):fb2d_rgb(89,74,120);
+    draw_rect(EXIT_X-2,EXIT_Y-3,EXIT_W+4,EXIT_H+3,fb2d_rgb(35,31,57));
+    draw_rect(EXIT_X,EXIT_Y,EXIT_W,EXIT_H,c);
 }
 
 static void draw_room(const player_t *p,int facing,int won){
-    uint32_t sky=fb2d_rgb(19+g_room*4,19+g_room*3,38+g_room*7);
-    fb2d_clear(&g_fb,sky);
+    uint32_t sky=fb2d_rgb(19+g_room*4,19+g_room*3,38+g_room*7); fb2d_clear(&g_fb,sky);
     static const uint16_t stars[][2]={{12,18},{39,31},{71,14},{101,38},{139,20},{173,29},{205,12},{238,35},{270,18},{305,42},{24,74},{88,61},{154,56},{257,65},{294,82}};
     for(unsigned i=0;i<sizeof(stars)/sizeof(stars[0]);++i) draw_pixel(stars[i][0],stars[i][1],fb2d_rgb(93,91,128));
-    draw_rect(0,145,320,15,fb2d_rgb(27,31,54));
-    draw_rect(18+g_room*9,135,22,25,fb2d_rgb(27,31,54));
-    draw_rect(79+g_room*7,140,31,20,fb2d_rgb(27,31,54));
-    draw_rect(177-g_room*5,137,24,23,fb2d_rgb(27,31,54));
 
-    for(int i=0;i<PLATFORM_COUNT;++i){
-        if(platforms[i].room!=g_room) continue;
+    for(int i=0;i<TILE_COUNT;++i) if(tiles[i].room==g_room) draw_tile(&tiles[i]);
+    for(int i=0;i<PLATFORM_COUNT;++i) if(platforms[i].room==g_room){
         draw_rect((int)platforms[i].x,(int)platforms[i].y,(int)platforms[i].w,(int)platforms[i].h,fb2d_rgb(55,52,73));
         draw_rect((int)platforms[i].x,(int)platforms[i].y,(int)platforms[i].w,2,fb2d_rgb(116,97,115));
     }
-    for(int i=0;i<CRYSTAL_COUNT;++i)
-        if(crystals[i].room==g_room && !crystals[i].collected) draw_crystal(crystals[i].x,crystals[i].y);
-
+    for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].room==g_room&&!crystals[i].collected) draw_crystal(crystals[i].x,crystals[i].y);
+    for(int i=0;i<ENEMY_COUNT;++i) if(enemies[i].room==g_room&&enemies[i].alive) draw_enemy(&enemies[i]);
+    for(int i=0;i<NPC_COUNT;++i) if(npcs[i].room==g_room) draw_npc(&npcs[i]);
+    for(int i=0;i<DOOR_COUNT;++i) if(doors[i].room==g_room) draw_door(&doors[i],!doors[i].requires_all||total_collected()==CRYSTAL_COUNT);
+    for(int i=0;i<TELEPORT_COUNT;++i) if(teleports[i].room==g_room) draw_teleport(&teleports[i]);
     if(g_room==EXIT_ROOM) draw_exit(total_collected()==CRYSTAL_COUNT);
 
-    int frame=0;
-    if(!p->on_ground) frame=3;
-    else if(p->vx>0.15f || p->vx<-0.15f) frame=1+((g_frame_counter/8)&1);
+    int frame=!p->on_ground?3:((p->vx>.15f||p->vx<-.15f)?1+((g_frame_counter/8)&1):0);
     draw_sprite_frame(frame,iroundf_local(p->x),iroundf_local(p->y),facing<0);
 
-    draw_rect(6,6,66,11,fb2d_rgb(9,11,24));
-    for(int i=0;i<CRYSTAL_COUNT && i<8;++i){
-        if(crystals[i].collected) draw_crystal(9+i*7,8);
-        else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
-    }
-    for(int i=0;i<ROOM_COUNT;++i)
-        draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
+    draw_rect(6,6,72,11,fb2d_rgb(9,11,24));
+    for(int i=0;i<CRYSTAL_COUNT&&i<8;++i) if(crystals[i].collected) draw_crystal(9+i*7,8); else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
+    for(int i=0;i<ROOM_COUNT;++i) draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
 
-    if(won){
-        draw_rect(88,58,144,42,fb2d_rgb(8,10,22));
-        draw_rect(92,62,136,34,fb2d_rgb(47,39,72));
-        for(int i=0;i<9;++i) draw_rect(102+i*14,75+(i&1)*4,8,8,(i&1)?fb2d_rgb(109,255,156):fb2d_rgb(55,215,225));
-    }
+    if(g_npc_flash>0){ draw_rect(88,28,144,24,fb2d_rgb(245,240,220)); draw_rect(94,34,132,4,fb2d_rgb(48,44,62)); draw_rect(94,42,82,4,fb2d_rgb(48,44,62)); }
+    if(won){ draw_rect(88,58,144,42,fb2d_rgb(8,10,22)); draw_rect(92,62,136,34,fb2d_rgb(47,39,72)); }
 }
 
+static void respawn(player_t *p){
+    g_room=g_checkpoint_room; p->x=g_checkpoint_x; p->y=g_checkpoint_y; p->vx=p->vy=0; p->on_ground=0; g_teleport_cooldown=20;
+}
 static void reset_game(player_t *p,int *facing,int *won){
-    p->x=PLAYER_START_X; p->y=PLAYER_START_Y; p->vx=0; p->vy=0; p->on_ground=0;
-    *facing=1; *won=0; g_room=PLAYER_START_ROOM;
+    *facing=1; *won=0; g_checkpoint_room=PLAYER_START_ROOM; g_checkpoint_x=PLAYER_START_X; g_checkpoint_y=PLAYER_START_Y; respawn(p);
     for(int i=0;i<CRYSTAL_COUNT;++i) crystals[i].collected=0;
+    for(int i=0;i<ENEMY_COUNT;++i) enemies[i].alive=1;
+    for(int i=0;i<TRIGGER_COUNT;++i) triggers[i].fired=0;
+}
+
+static void collide_surface(player_t *p,float old_y,float x,float y,float w,float h){
+    if(!overlaps(p->x,p->y,PLAYER_W,PLAYER_H,x,y,w,h)) return;
+    float old_bottom=old_y+PLAYER_H,new_bottom=p->y+PLAYER_H;
+    if(p->vy>=0.0f&&old_bottom<=y+1.0f&&new_bottom>=y){ p->y=y-PLAYER_H; p->vy=0; p->on_ground=1; }
+    else if(p->vy<0.0f&&old_y>=y+h-1.0f){ p->y=y+h; p->vy=0; }
 }
 
 static void collide_room(player_t *p,float old_y){
     p->on_ground=0;
-    for(int i=0;i<PLATFORM_COUNT;++i){
-        const room_platform_t *r=&platforms[i];
-        if(r->room!=g_room) continue;
-        if(!overlaps(p->x,p->y,PLAYER_W,PLAYER_H,r->x,r->y,r->w,r->h)) continue;
-        float old_bottom=old_y+PLAYER_H, new_bottom=p->y+PLAYER_H;
-        if(p->vy>=0.0f && old_bottom<=r->y+1.0f && new_bottom>=r->y){
-            p->y=r->y-PLAYER_H; p->vy=0; p->on_ground=1;
-        } else if(p->vy<0.0f && old_y>=r->y+r->h-1.0f){
-            p->y=r->y+r->h; p->vy=0;
-        }
-    }
+    for(int i=0;i<PLATFORM_COUNT;++i) if(platforms[i].room==g_room) collide_surface(p,old_y,platforms[i].x,platforms[i].y,platforms[i].w,platforms[i].h);
+    for(int i=0;i<TILE_COUNT;++i) if(tiles[i].room==g_room&&tiles[i].solid) collide_surface(p,old_y,tiles[i].x*TILE_SIZE,tiles[i].y*TILE_SIZE,TILE_SIZE,TILE_SIZE);
 }
 
 static void update_player(player_t *p){
     p->x+=p->vx;
-    if(p->x < -PLAYER_W){
-        if(g_room>0){ --g_room; p->x=VW-PLAYER_W-2; }
-        else p->x=0;
-    } else if(p->x > VW){
-        if(g_room<ROOM_COUNT-1){ ++g_room; p->x=2; }
-        else p->x=VW-PLAYER_W;
-    }
+    if(p->x<-PLAYER_W){ if(g_room>0){--g_room;p->x=VW-PLAYER_W-2;} else p->x=0; }
+    else if(p->x>VW){ if(g_room<ROOM_COUNT-1){++g_room;p->x=2;} else p->x=VW-PLAYER_W; }
+    float old_y=p->y; p->vy+=GAME_GRAVITY; if(p->vy>GAME_MAX_FALL_SPEED)p->vy=GAME_MAX_FALL_SPEED; p->y+=p->vy; collide_room(p,old_y);
+    if(p->y>VH+30) respawn(p);
+}
 
-    float old_y=p->y;
-    p->vy+=GAME_GRAVITY;
-    if(p->vy>GAME_MAX_FALL_SPEED) p->vy=GAME_MAX_FALL_SPEED;
-    p->y+=p->vy;
-    collide_room(p,old_y);
-    if(p->y>VH+30){ p->y=0; p->vy=0; }
+static void update_enemies(player_t *p){
+    for(int i=0;i<ENEMY_COUNT;++i){
+        enemy_t *e=&enemies[i]; if(e->room!=g_room||!e->alive) continue;
+        e->x+=e->speed*e->dir; if(e->x<=e->left){e->x=e->left;e->dir=1;} if(e->x>=e->right){e->x=e->right;e->dir=-1;}
+        if(overlaps(p->x,p->y,PLAYER_W,PLAYER_H,e->x,e->y,e->w,e->h)){ snd_hit(); respawn(p); return; }
+    }
+}
+
+static void process_triggers(player_t *p){
+    for(int i=0;i<TRIGGER_COUNT;++i){
+        trigger_t *t=&triggers[i]; if(t->room!=g_room||(t->once&&t->fired))continue;
+        if(!overlaps(p->x,p->y,PLAYER_W,PLAYER_H,t->x,t->y,t->w,t->h))continue;
+        t->fired=1;
+        if(!strcmp(t->action,"checkpoint")){ g_checkpoint_room=g_room;g_checkpoint_x=p->x;g_checkpoint_y=p->y; xenon_tone(520,45,XENON_TONE_AMPLITUDE_25); }
+        else if(!strcmp(t->action,"teleport")&&t->target_room>=0){ g_room=t->target_room;p->x=t->target_x;p->y=t->target_y;p->vx=p->vy=0;g_teleport_cooldown=20; }
+        else xenon_tone(430,60,XENON_TONE_AMPLITUDE_25);
+    }
+}
+
+static void process_teleports(player_t *p){
+    if(g_teleport_cooldown>0){--g_teleport_cooldown;return;}
+    for(int i=0;i<TELEPORT_COUNT;++i){ const teleport_t *t=&teleports[i]; if(t->room!=g_room)continue;
+        if(overlaps(p->x,p->y,PLAYER_W,PLAYER_H,t->x,t->y,t->w,t->h)){ g_room=t->target_room;p->x=t->target_x;p->y=t->target_y;p->vx=p->vy=0;g_teleport_cooldown=30;snd_door();return; }
+    }
+}
+
+static void interact(player_t *p){
+    for(int i=0;i<NPC_COUNT;++i){ const npc_t *n=&npcs[i]; if(n->room==g_room&&overlaps(p->x-6,p->y-4,PLAYER_W+12,PLAYER_H+8,n->x,n->y,n->w,n->h)){ g_npc_flash=90;snd_npc();return; } }
+    for(int i=0;i<DOOR_COUNT;++i){ const door_t *d=&doors[i]; if(d->room!=g_room)continue;
+        if(overlaps(p->x,p->y,PLAYER_W,PLAYER_H,d->x-3,d->y-3,d->w+6,d->h+6)){
+            if(d->requires_all&&total_collected()!=CRYSTAL_COUNT){ xenon_tone(190,60,XENON_TONE_AMPLITUDE_25);return; }
+            g_room=d->target_room;p->x=d->target_x;p->y=d->target_y;p->vx=p->vy=0;g_teleport_cooldown=30;snd_door();return;
+        }
+    }
 }
 
 int main(void){
     xenos_init(VIDEO_MODE_AUTO); console_init(); usb_init(); usb_do_poll(); xenon_sound_init();
-    if(fb2d_init(&g_fb)!=0){ printf("fb2d init failed\n"); for(;;) usb_do_poll(); }
-    g_scale=g_fb.width/VW; if(g_fb.height/VH<g_scale) g_scale=g_fb.height/VH; if(g_scale<1) g_scale=1;
-    g_off_x=(g_fb.width-VW*g_scale)/2; g_off_y=(g_fb.height-VH*g_scale)/2;
-    printf("%s | rooms=%d | %dx%d\n",GAME_NAME,ROOM_COUNT,VW,VH);
+    if(fb2d_init(&g_fb)!=0){printf("fb2d init failed\n");for(;;)usb_do_poll();}
+    g_scale=g_fb.width/VW;if(g_fb.height/VH<g_scale)g_scale=g_fb.height/VH;if(g_scale<1)g_scale=1;
+    g_off_x=(g_fb.width-VW*g_scale)/2;g_off_y=(g_fb.height-VH*g_scale)/2;
+    printf("%s | rooms=%d | entities E%d N%d T%d D%d P%d\n",GAME_NAME,ROOM_COUNT,ENEMY_COUNT,NPC_COUNT,TRIGGER_COUNT,DOOR_COUNT,TELEPORT_COUNT);
 
-    player_t player; int facing,won; reset_game(&player,&facing,&won);
-    struct controller_data_s prev; memset(&prev,0,sizeof(prev));
-
+    player_t player;int facing,won;reset_game(&player,&facing,&won);
+    struct controller_data_s prev;memset(&prev,0,sizeof(prev));
     for(;;){
-        struct controller_data_s pad; memset(&pad,0,sizeof(pad));
+        struct controller_data_s pad;memset(&pad,0,sizeof(pad));
         if(get_controller_data(&pad,0)){
-            int left=pad.left || pad.s1_x<-9000, right=pad.right || pad.s1_x>9000;
+            int left=pad.left||pad.s1_x<-9000,right=pad.right||pad.s1_x>9000;
             if(!won){
-                if(left&&!right){ player.vx=-PLAYER_SPEED; facing=-1; }
-                else if(right&&!left){ player.vx=PLAYER_SPEED; facing=1; }
-                else { player.vx*=0.55f; if(player.vx>-0.08f&&player.vx<0.08f) player.vx=0; }
-                if(pad.a&&!prev.a&&player.on_ground){
-                    player.vy=-PLAYER_JUMP_SPEED; player.on_ground=0;
-                    play_pcm(sound_jump_pcm,SOUND_JUMP_LEN);
-                }
-                update_player(&player);
-                for(int i=0;i<CRYSTAL_COUNT;++i){
-                    if(crystals[i].room==g_room && !crystals[i].collected &&
-                       overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){
-                        crystals[i].collected=1; play_collect_sound();
-                    }
-                }
-                if(g_room==EXIT_ROOM && total_collected()==CRYSTAL_COUNT &&
-                   overlaps(player.x,player.y,PLAYER_W,PLAYER_H,EXIT_X-2,EXIT_Y-3,EXIT_W+4,EXIT_H+3)){
-                    won=1; player.vx=player.vy=0;
-                }
+                if(left&&!right){player.vx=-PLAYER_SPEED;facing=-1;} else if(right&&!left){player.vx=PLAYER_SPEED;facing=1;} else {player.vx*=.55f;if(player.vx>-.08f&&player.vx<.08f)player.vx=0;}
+                if(pad.a&&!prev.a&&player.on_ground){player.vy=-PLAYER_JUMP_SPEED;player.on_ground=0;snd_jump();}
+                update_player(&player); update_enemies(&player);
+                for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].room==g_room&&!crystals[i].collected&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){crystals[i].collected=1;snd_collect();}
+                process_triggers(&player);process_teleports(&player);
+                if(pad.b&&!prev.b) interact(&player);
+                if(g_room==EXIT_ROOM&&total_collected()==CRYSTAL_COUNT&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,EXIT_X-2,EXIT_Y-3,EXIT_W+4,EXIT_H+3)){won=1;player.vx=player.vy=0;}
             }
-            if(pad.start&&!prev.start) reset_game(&player,&facing,&won);
-            if(won&&pad.a&&!prev.a) reset_game(&player,&facing,&won);
+            if(pad.start&&!prev.start)reset_game(&player,&facing,&won);
+            if(won&&pad.a&&!prev.a)reset_game(&player,&facing,&won);
             prev=pad;
         }
-        draw_room(&player,facing,won);
-        fb2d_present(&g_fb);
-        usb_do_poll();
-        ++g_frame_counter;
+        if(g_npc_flash>0)--g_npc_flash;
+        draw_room(&player,facing,won);fb2d_present(&g_fb);usb_do_poll();++g_frame_counter;
     }
     return 0;
 }
