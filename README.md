@@ -29,6 +29,7 @@ Windows CMD / PowerShell:
 xgm.bat info
 xgm.bat list
 xgm.bat validate
+xgm.bat play
 xgm.bat generate
 xgm.bat build --docker
 ```
@@ -513,6 +514,61 @@ Camera features currently include:
 - foreground layers
 - screen shake on damage and melee attack
 - HUD independent from camera/shake
+
+
+
+## Windows simulator
+
+Before compiling for Xbox 360 you can run the same project on Windows:
+
+```bat
+xgm.bat play
+```
+
+or:
+
+```powershell
+python tools/xgm.py play
+```
+
+The simulator uses Python's built-in Tkinter and reads the same `project/game.json` directly.
+
+Current simulator coverage:
+
+- room/world width
+- Camera2D follow
+- PNG backgrounds
+- parallax layers
+- foreground layers
+- platforms and solid tiles
+- crystals and item pickups
+- player movement and jumping
+- HP and damage
+- walker / charger / tank enemies
+- melee attack
+- consumables
+- inventory
+- NPC interaction
+- key doors
+- branching dialogue choices
+- room transitions
+- HUD/debug camera information
+
+Windows keyboard controls:
+
+```text
+A / D or arrows   move
+Space or Z        jump
+X                 attack
+Y                 use consumable
+E or Enter        interact
+Up / Down         dialogue choice
+Enter / Space     confirm dialogue
+R                 restart
+Esc               quit
+```
+
+The simulator is a fast gameplay preview, not an Xbox 360 CPU/GPU emulator. The final `.elf32` build should still be tested on the console, but most level/gameplay issues can be caught on Windows first.
 
 ## Project data
 
