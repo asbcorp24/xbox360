@@ -4,3 +4,6 @@ build/
 *.map
 .DS_Store
 .vscode/
+
+source/generated_game.h
+source/generated_assets.h
