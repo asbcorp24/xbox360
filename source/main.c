@@ -76,8 +76,15 @@ static int total_collected(void){
 }
 
 static void play_pcm(const unsigned char *pcm,int len){
-    if(len<=0) return;
-    if(xenon_sound_get_free()>=len) xenon_sound_submit((void*)pcm,len);
+    if(len>0 && xenon_sound_get_free()>=len) xenon_sound_submit((void*)pcm,len);
+}
+static void play_jump_sound(void){
+    if(SOUND_JUMP_LEN>0) play_jump_sound();
+    else xenon_tone(620,35,XENON_TONE_AMPLITUDE_25);
+}
+static void play_collect_sound(void){
+    if(SOUND_COLLECT_LEN>0) play_pcm(sound_collect_pcm,SOUND_COLLECT_LEN);
+    else xenon_tone(1100,45,XENON_TONE_AMPLITUDE_25);
 }
 
 static void draw_exit(int open){
@@ -193,7 +200,7 @@ int main(void){
                 for(int i=0;i<CRYSTAL_COUNT;++i){
                     if(crystals[i].room==g_room && !crystals[i].collected &&
                        overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){
-                        crystals[i].collected=1; play_pcm(sound_collect_pcm,SOUND_COLLECT_LEN);
+                        crystals[i].collected=1; play_collect_sound();
                     }
                 }
                 if(g_room==EXIT_ROOM && total_collected()==CRYSTAL_COUNT &&
