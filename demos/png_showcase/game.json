@@ -942,5 +942,15 @@
         }
       ]
     }
-  ]
+  ],
+  "flow": {
+    "boot_frames": 90,
+    "boot_image": "assets/showcase/ui/boot.png",
+    "title_image": "assets/showcase/ui/title.png",
+    "title": "NEON DISTRICT",
+    "subtitle": "PRESS A / START",
+    "game_over": "GAME OVER",
+    "ending": "MISSION COMPLETE",
+    "credits": "XGM PNG SHOWCASE  OPEN HOMEBREW"
+  }
 }
