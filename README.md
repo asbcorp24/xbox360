@@ -517,6 +517,62 @@ Camera features currently include:
 
 
 
+
+
+## All-features demo game
+
+A separate demo project is included specifically to test the whole constructor without touching the main project:
+
+```text
+demos/all_features/game.json
+```
+
+Run it on Windows:
+
+```bat
+demo-play.bat
+```
+
+Build the demo for Xbox 360:
+
+```bat
+demo-build.bat
+```
+
+Linux / MSYS2 equivalents:
+
+```bash
+./demo-play.sh
+./demo-build.sh
+```
+
+The demo intentionally exercises:
+
+- 4 rooms with different world widths
+- Camera2D follow / dead zone / smoothing
+- PNG background + far and near parallax + foreground
+- platforms and solid/decor tiles
+- crystals
+- pickups and inventory
+- key item and locked door
+- consumable medkits
+- weapon damage
+- walker, charger and tank enemies
+- player HP / enemy damage / respawn
+- checkpoint trigger
+- normal trigger
+- automatic teleport
+- NPC interaction
+- branching dialogue choices
+- flags and variables
+- `on_enter`, `on_interact`, `on_collect`
+- scripted door opening
+- scripted enemy spawning
+- room transitions
+- final exit
+
+A separate GitHub Actions workflow called **Build All Features Demo** validates, generates and compiles this demo independently of the main project.
+
 ## Windows simulator
 
 Before compiling for Xbox 360 you can run the same project on Windows:
