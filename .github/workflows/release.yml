@@ -21,6 +21,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install generator runtime
+        run: |
+          apt-get update
+          apt-get install -y python3
+
+      - name: Generate game data and assets
+        run: |
+          python3 tools/xgm.py validate
+          python3 tools/xgm.py generate
+
       - name: Build
         run: make
 
