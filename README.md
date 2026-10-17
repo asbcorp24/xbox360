@@ -346,6 +346,101 @@ Change room from a script:
 
 The scripting layer is compiled into static C tables. The Xbox 360 build does not parse JSON at runtime.
 
+
+
+## Inventory, health, combat and branching dialogue
+
+Player RPG stats:
+
+```bash
+./xgm set-player-stats --health 5 --damage 1
+```
+
+Create inventory items:
+
+```bash
+./xgm add-item roof_key key
+./xgm add-item medkit consumable --power 2
+./xgm add-item rusty_sword weapon --power 2 --count 1
+```
+
+Place a pickup in a room:
+
+```bash
+./xgm add-pickup 1 roof_key 110 82
+./xgm add-pickup 0 medkit 210 148
+```
+
+Doors can require a key:
+
+```bash
+./xgm add-door 1 294 140 2 18 145 --locked --key roof_key
+```
+
+Enemy types:
+
+```text
+walker  - normal patrol
+charger - accelerates toward the player when nearby
+tank    - slower but intended for more HP / damage
+```
+
+Examples:
+
+```bash
+./xgm add-enemy 0 190 151 --left 180 --right 230 \
+  --type walker --hp 2 --damage 1
+
+./xgm add-enemy 1 160 84 --left 145 --right 200 \
+  --type charger --speed 0.7 --hp 3 --damage 1
+
+./xgm add-enemy 2 205 151 --left 190 --right 250 \
+  --type tank --hp 5 --damage 2
+```
+
+Combat controls:
+
+```text
+X = attack
+A = jump
+B = interact / confirm dialogue answer
+D-pad / left stick = move and select dialogue answers
+```
+
+Weapon damage is taken from the strongest weapon currently present in the inventory. If there is no weapon, `player.damage` is used.
+
+### Branching dialogue
+
+Create dialogue nodes:
+
+```bash
+./xgm add-dialog guide_start "Do you want the roof key?"
+./xgm add-dialog guide_help "Find the key upstairs. Take this medkit."
+./xgm add-dialog guide_no "Then be careful. The tank hits hard."
+```
+
+Add choices:
+
+```bash
+./xgm add-choice guide_start "Yes, help me." \
+  --next guide_help \
+  --set-flag accepted_help=1
+
+./xgm add-choice guide_start "No, I can manage." \
+  --next guide_no
+
+./xgm add-choice guide_help "Thanks." \
+  --give-item medkit:1
+```
+
+Attach a dialogue to an NPC when creating it:
+
+```bash
+./xgm add-npc 0 102 148 "Guide" --dialogue guide_start
+```
+
+The dialogue UI is rendered directly by the Xbox 360 runtime. Choices can branch to other nodes, set flags, or give inventory items.
+
 ## Project data
 
 Main project file:
@@ -371,7 +466,9 @@ Do not edit generated files manually; run:
 
 - Left stick / D-pad: move
 - A: jump
-- B: interact with NPCs / doors
+- B: interact with NPCs / doors / confirm dialogue
+- X: attack
+- D-pad / left stick: move and select dialogue answers
 - Start: restart
 - collect all crystals and reach the exit
 
