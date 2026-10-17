@@ -35,7 +35,7 @@ typedef struct { int cmd; const char *name; int value,room,index,x,y; const char
 typedef struct { int event,room,target,once,fired,cond_type; const char *cond_name; int cond_op,cond_value,action_start,action_count; } script_event_t;
 
 enum { EVT_ON_ENTER=1, EVT_ON_INTERACT=2, EVT_ON_COLLECT=3 };
-enum { ACT_SET_FLAG=1, ACT_SET_VAR=2, ACT_ADD_VAR=3, ACT_OPEN_DOOR=4, ACT_SPAWN_ENEMY=5, ACT_CHANGE_ROOM=6, ACT_DIALOG=7 };
+enum { ACT_SET_FLAG=1, ACT_SET_VAR=2, ACT_ADD_VAR=3, ACT_OPEN_DOOR=4, ACT_SPAWN_ENEMY=5, ACT_CHANGE_ROOM=6, ACT_DIALOG=7, ACT_EMIT_PARTICLES=8 };
 
 #include "generated_game.h"
 #include "generated_assets.h"
@@ -401,6 +401,11 @@ static void execute_action(const script_action_t *a,player_t *p){
             if(a->room>=0&&a->room<ROOM_COUNT){g_room=a->room;p->x=a->x;p->y=a->y;p->vx=p->vy=0;g_teleport_cooldown=20;} break;
         case ACT_DIALOG:
             script_dialog(a->text); break;
+        case ACT_EMIT_PARTICLES:{
+            int type=!strcmp(a->name,"spark")?2:(!strcmp(a->name,"dust")?3:(!strcmp(a->name,"fire")?4:1));
+            int r=type==2?255:(type==4?255:180), g=type==2?190:(type==4?100:150), b=type==2?80:(type==4?40:140);
+            particle_burst((float)a->x,(float)a->y,type,a->value>0?a->value:8,r,g,b); break;
+        }
     }
 }
 static void run_script_event(int event,int room,int target,player_t *p){
