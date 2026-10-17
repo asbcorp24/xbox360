@@ -14,14 +14,14 @@
 typedef struct { int room; float x,y,w,h; } room_platform_t;
 typedef struct { int room; int x,y; int collected; } room_crystal_t;
 typedef struct { int room,x,y,tile,solid; } tile_cell_t;
-typedef struct { int room; float x,y; int w,h; float left,right,speed; int dir,alive; } enemy_t;
+typedef struct { int room; float x,y; int w,h; float left,right,speed; int dir,alive,initial_alive; } enemy_t;
 typedef struct { int room,x,y,w,h; const char *message; } npc_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y,once,fired; const char *action; } trigger_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y,requires_all,locked; } door_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y; } teleport_t;
 typedef struct { float x,y,vx,vy; int on_ground; } player_t;
 
-typedef struct { const char *name; int value; } script_value_t;
+typedef struct { const char *name; int value,initial_value; } script_value_t;
 typedef struct { int cmd; const char *name; int value,room,index,x,y; const char *text; } script_action_t;
 typedef struct { int event,room,target,once,fired,cond_type; const char *cond_name; int cond_op,cond_value,action_start,action_count; } script_event_t;
 
@@ -64,6 +64,65 @@ static void draw_rect(int x,int y,int w,int h,uint32_t c){
     draw_rect_screen(g_off_x+x*g_scale,g_off_y+y*g_scale,w*g_scale,h*g_scale,c);
 }
 static void draw_pixel(int x,int y,uint32_t c){ draw_rect(x,y,1,1,c); }
+
+static unsigned char glyph3x5(char ch,int row){
+    if(ch>='a'&&ch<='z') ch=(char)(ch-'a'+'A');
+    switch(ch){
+        case 'A':{static const unsigned char g[5]={2,5,7,5,5};return g[row];}
+        case 'B':{static const unsigned char g[5]={6,5,6,5,6};return g[row];}
+        case 'C':{static const unsigned char g[5]={3,4,4,4,3};return g[row];}
+        case 'D':{static const unsigned char g[5]={6,5,5,5,6};return g[row];}
+        case 'E':{static const unsigned char g[5]={7,4,6,4,7};return g[row];}
+        case 'F':{static const unsigned char g[5]={7,4,6,4,4};return g[row];}
+        case 'G':{static const unsigned char g[5]={3,4,5,5,3};return g[row];}
+        case 'H':{static const unsigned char g[5]={5,5,7,5,5};return g[row];}
+        case 'I':{static const unsigned char g[5]={7,2,2,2,7};return g[row];}
+        case 'J':{static const unsigned char g[5]={1,1,1,5,2};return g[row];}
+        case 'K':{static const unsigned char g[5]={5,5,6,5,5};return g[row];}
+        case 'L':{static const unsigned char g[5]={4,4,4,4,7};return g[row];}
+        case 'M':{static const unsigned char g[5]={5,7,7,5,5};return g[row];}
+        case 'N':{static const unsigned char g[5]={5,7,7,7,5};return g[row];}
+        case 'O':{static const unsigned char g[5]={2,5,5,5,2};return g[row];}
+        case 'P':{static const unsigned char g[5]={6,5,6,4,4};return g[row];}
+        case 'Q':{static const unsigned char g[5]={2,5,5,3,1};return g[row];}
+        case 'R':{static const unsigned char g[5]={6,5,6,5,5};return g[row];}
+        case 'S':{static const unsigned char g[5]={3,4,2,1,6};return g[row];}
+        case 'T':{static const unsigned char g[5]={7,2,2,2,2};return g[row];}
+        case 'U':{static const unsigned char g[5]={5,5,5,5,7};return g[row];}
+        case 'V':{static const unsigned char g[5]={5,5,5,5,2};return g[row];}
+        case 'W':{static const unsigned char g[5]={5,5,7,7,5};return g[row];}
+        case 'X':{static const unsigned char g[5]={5,5,2,5,5};return g[row];}
+        case 'Y':{static const unsigned char g[5]={5,5,2,2,2};return g[row];}
+        case 'Z':{static const unsigned char g[5]={7,1,2,4,7};return g[row];}
+        case '0':{static const unsigned char g[5]={7,5,5,5,7};return g[row];}
+        case '1':{static const unsigned char g[5]={2,6,2,2,7};return g[row];}
+        case '2':{static const unsigned char g[5]={6,1,7,4,7};return g[row];}
+        case '3':{static const unsigned char g[5]={6,1,3,1,6};return g[row];}
+        case '4':{static const unsigned char g[5]={5,5,7,1,1};return g[row];}
+        case '5':{static const unsigned char g[5]={7,4,6,1,6};return g[row];}
+        case '6':{static const unsigned char g[5]={3,4,7,5,7};return g[row];}
+        case '7':{static const unsigned char g[5]={7,1,2,2,2};return g[row];}
+        case '8':{static const unsigned char g[5]={7,5,7,5,7};return g[row];}
+        case '9':{static const unsigned char g[5]={7,5,7,1,6};return g[row];}
+        case '.':{static const unsigned char g[5]={0,0,0,0,2};return g[row];}
+        case '!':{static const unsigned char g[5]={2,2,2,0,2};return g[row];}
+        case '?':{static const unsigned char g[5]={6,1,2,0,2};return g[row];}
+        case ':':{static const unsigned char g[5]={0,2,0,2,0};return g[row];}
+        case '-':{static const unsigned char g[5]={0,0,7,0,0};return g[row];}
+        default:return 0;
+    }
+}
+static void draw_text3x5(int x,int y,const char *s,uint32_t color,int max_chars){
+    int cx=x,cy=y,n=0;
+    while(*s&&n<max_chars){
+        char ch=*s++;
+        if(ch=='\n'||cx>x+196){cx=x;cy+=7;if(ch=='\n')continue;}
+        if(ch!=' '){
+            for(int r=0;r<5;++r){unsigned char bits=glyph3x5(ch,r);for(int col=0;col<3;++col)if(bits&(1<<(2-col)))draw_pixel(cx+col,cy+r,color);}
+        }
+        cx+=4;++n;
+    }
+}
 
 static void draw_sprite_frame(int frame,int x,int y,int flip){
     if(frame<0) frame=0; if(frame>=PLAYER_FRAME_COUNT) frame=PLAYER_FRAME_COUNT-1;
@@ -222,7 +281,7 @@ static void draw_room(const player_t *p,int facing,int won){
     for(int i=0;i<CRYSTAL_COUNT&&i<8;++i) if(crystals[i].collected) draw_crystal(9+i*7,8); else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
     for(int i=0;i<ROOM_COUNT;++i) draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
 
-    if(g_npc_flash>0||g_dialog_timer>0){ draw_rect(52,24,216,32,fb2d_rgb(245,240,220)); draw_rect(58,31,204,4,fb2d_rgb(48,44,62)); draw_rect(58,41,156,4,fb2d_rgb(48,44,62)); }
+    if(g_npc_flash>0||g_dialog_timer>0){ draw_rect(52,24,216,32,fb2d_rgb(245,240,220)); draw_rect(54,26,212,28,fb2d_rgb(252,249,235)); if(g_dialog_text)draw_text3x5(58,31,g_dialog_text,fb2d_rgb(48,44,62),96); }
     if(won){ draw_rect(88,58,144,42,fb2d_rgb(8,10,22)); draw_rect(92,62,136,34,fb2d_rgb(47,39,72)); }
 }
 
@@ -232,8 +291,11 @@ static void respawn(player_t *p){
 static void reset_game(player_t *p,int *facing,int *won){
     *facing=1; *won=0; g_checkpoint_room=PLAYER_START_ROOM; g_checkpoint_x=PLAYER_START_X; g_checkpoint_y=PLAYER_START_Y; respawn(p);
     for(int i=0;i<CRYSTAL_COUNT;++i) crystals[i].collected=0;
+    for(int i=0;i<ENEMY_COUNT;++i) enemies[i].alive=enemies[i].initial_alive;
     for(int i=0;i<TRIGGER_COUNT;++i) triggers[i].fired=0;
     for(int i=0;i<SCRIPT_EVENT_COUNT;++i) script_events[i].fired=0;
+    for(int i=0;i<SCRIPT_FLAG_COUNT;++i) script_flags[i].value=script_flags[i].initial_value;
+    for(int i=0;i<SCRIPT_VAR_COUNT;++i) script_vars[i].value=script_vars[i].initial_value;
     memset(g_door_open,0,sizeof(g_door_open));
     g_last_script_room=-999; g_dialog_timer=0; g_dialog_text=0;
 }
