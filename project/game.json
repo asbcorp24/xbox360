@@ -1,5 +1,5 @@
 {
-  "format": 3,
+  "format": 4,
   "name": "Pixel Run 360",
   "virtual_resolution": [
     320,
@@ -254,5 +254,70 @@
       ]
     }
   ],
-  "tile_size": 16
+  "tile_size": 16,
+  "flags": {
+    "quest_started": 0,
+    "gate_open": 0
+  },
+  "variables": {
+    "score": 0,
+    "talks": 0
+  },
+  "scripts": [
+    {
+      "event": "on_enter",
+      "room": 0,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "Find the crystals and reach the exit."
+        },
+        {
+          "cmd": "set_flag",
+          "name": "quest_started",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "event": "on_interact",
+      "room": 0,
+      "target": 0,
+      "once": false,
+      "condition": {
+        "kind": "flag",
+        "name": "quest_started",
+        "op": "eq",
+        "value": 1
+      },
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "Good luck! The roof door is ahead."
+        },
+        {
+          "cmd": "add_var",
+          "name": "talks",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "event": "on_collect",
+      "room": -1,
+      "target": -1,
+      "once": false,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "add_var",
+          "name": "score",
+          "value": 1
+        }
+      ]
+    }
+  ]
 }
