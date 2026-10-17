@@ -19,8 +19,11 @@ typedef struct { int room,x,y,w,h; const char *message; int dialogue; } npc_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y,once,fired; const char *action; } trigger_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y,requires_all,locked,key_item; } door_t;
 typedef struct { int room,x,y,w,h,target_room,target_x,target_y; } teleport_t;
-typedef struct { float x,y,vx,vy; int on_ground,hp,max_hp,invuln,attack_cd,attack_frames; } player_t;
-typedef struct { const char *name; int kind,power,count,initial_count; } item_t;
+typedef struct { int room,type,x,y,rate,life; float speed,spread,gravity; int r,g,b,timer; } particle_emitter_t;
+typedef struct { int active,room,life,damage; float x,y,vx,vy; } projectile_t;
+typedef struct { int active,room,life,max_life,size; float x,y,vx,vy,gravity; uint32_t color; } particle_t;
+typedef struct { float x,y,vx,vy; int on_ground,hp,max_hp,invuln,attack_cd,attack_frames,fire_cd; } player_t;
+typedef struct { const char *name; int kind,power,count,initial_count,ammo_item,fire_rate; float projectile_speed; int projectile_life; } item_t;
 typedef struct { int room,x,y,item_index,qty,collected; } pickup_t;
 typedef struct { const char *id,*text; int choice_start,choice_count; } dialog_node_t;
 typedef struct { const char *text; int next_node; const char *set_flag; int set_flag_value,give_item,give_qty; } dialog_choice_t;
@@ -58,6 +61,10 @@ static float g_camera_x=0.0f,g_camera_y=0.0f;
 static int g_world_mode=0;
 static int g_shake_frames=0,g_shake_strength=0;
 static int g_shake_x=0,g_shake_y=0;
+#define MAX_PROJECTILES 32
+#define MAX_PARTICLES 128
+static projectile_t g_projectiles[MAX_PROJECTILES];
+static particle_t g_particles[MAX_PARTICLES];
 
 static int iroundf_local(float v){ return (int)(v+(v>=0.0f?0.5f:-0.5f)); }
 static int overlaps(float ax,float ay,float aw,float ah,float bx,float by,float bw,float bh){
@@ -251,6 +258,106 @@ static int weapon_damage(void){
     for(int i=0;i<RPG_ITEM_COUNT;++i) if(items[i].kind==3&&items[i].count>0&&items[i].power>best) best=items[i].power;
     return best;
 }
+static int active_gun_index(void){
+    int best=-1;
+    for(int i=0;i<RPG_ITEM_COUNT;++i)
+        if(items[i].kind==5&&items[i].count>0&&(best<0||items[i].power>items[best].power)) best=i;
+    return best;
+}
+static int point_hits_solid(float x,float y){
+    for(int i=0;i<PLATFORM_COUNT;++i){
+        const room_platform_t *p=&platforms[i];
+        if(p->room==g_room&&x>=p->x&&x<p->x+p->w&&y>=p->y&&y<p->y+p->h)return 1;
+    }
+    for(int i=0;i<TILE_COUNT;++i){
+        const tile_cell_t *t=&tiles[i];
+        if(t->room!=g_room||!t->solid)continue;
+        float tx=(float)(t->x*TILE_SIZE),ty=(float)(t->y*TILE_SIZE);
+        if(x>=tx&&x<tx+TILE_SIZE&&y>=ty&&y<ty+TILE_SIZE)return 1;
+    }
+    return 0;
+}
+static float frand_unit(void){ return (float)(rand()&1023)/1023.0f; }
+static void spawn_particle(float x,float y,float vx,float vy,float gravity,int life,int size,uint32_t color){
+    for(int i=0;i<MAX_PARTICLES;++i) if(!g_particles[i].active){
+        particle_t *p=&g_particles[i]; p->active=1;p->room=g_room;p->x=x;p->y=y;p->vx=vx;p->vy=vy;p->gravity=gravity;
+        p->life=p->max_life=life;p->size=size;p->color=color;return;
+    }
+}
+static void particle_burst(float x,float y,int type,int count,int r,int g,int b){
+    uint32_t color=fb2d_rgb((uint8_t)r,(uint8_t)g,(uint8_t)b);
+    for(int i=0;i<count;++i){
+        float a=frand_unit()*2.0f-1.0f;
+        float vx=a*(type==2?1.8f:.9f);
+        float vy=-(.3f+frand_unit()*(type==4?1.5f:1.0f));
+        float grav=(type==1)?-0.005f:(type==2?0.08f:0.035f);
+        int life=12+(int)(frand_unit()*22.0f);
+        spawn_particle(x,y,vx,vy,grav,life,(type==1)?2:1,color);
+    }
+}
+static void update_emitters(void){
+    for(int i=0;i<PARTICLE_EMITTER_COUNT;++i){
+        particle_emitter_t *e=&particle_emitters[i]; if(e->room!=g_room)continue;
+        if(++e->timer<e->rate)continue; e->timer=0;
+        float vx=(frand_unit()*2.0f-1.0f)*e->spread*e->speed;
+        float vy=-(.2f+frand_unit()*e->speed);
+        if(e->type==2){vx*=1.8f;vy*=1.6f;}
+        if(e->type==3)vy=-.15f-frand_unit()*.25f;
+        if(e->type==4)vy=-.4f-frand_unit()*e->speed;
+        spawn_particle((float)e->x,(float)e->y,vx,vy,e->gravity,e->life,e->type==1?2:1,fb2d_rgb((uint8_t)e->r,(uint8_t)e->g,(uint8_t)e->b));
+    }
+}
+static void update_particles(void){
+    update_emitters();
+    for(int i=0;i<MAX_PARTICLES;++i){
+        particle_t *p=&g_particles[i]; if(!p->active)continue;
+        if(p->room!=g_room){p->active=0;continue;}
+        p->x+=p->vx;p->y+=p->vy;p->vy+=p->gravity;
+        if(--p->life<=0)p->active=0;
+    }
+}
+static void draw_particles(void){
+    for(int i=0;i<MAX_PARTICLES;++i){
+        particle_t *p=&g_particles[i]; if(!p->active||p->room!=g_room)continue;
+        draw_rect(iroundf_local(p->x),iroundf_local(p->y),p->size,p->size,p->color);
+    }
+}
+static void update_projectiles(void){
+    for(int i=0;i<MAX_PROJECTILES;++i){
+        projectile_t *p=&g_projectiles[i]; if(!p->active)continue;
+        if(p->room!=g_room){p->active=0;continue;}
+        p->x+=p->vx;p->y+=p->vy;
+        if(--p->life<=0||p->x<0||p->x>room_world_width[g_room]||p->y<0||p->y>VH||point_hits_solid(p->x,p->y)){
+            particle_burst(p->x,p->y,2,4,240,190,80);p->active=0;continue;
+        }
+        for(int j=0;j<ENEMY_COUNT;++j){
+            enemy_t *e=&enemies[j];if(e->room!=g_room||!e->alive)continue;
+            if(overlaps(p->x,p->y,2,2,e->x,e->y,e->w,e->h)){
+                e->hp-=p->damage;particle_burst(p->x,p->y,2,7,255,170,70);camera_shake(1,4);p->active=0;
+                if(e->hp<=0){e->alive=0;particle_burst(e->x+e->w/2,e->y+e->h/2,3,14,190,70,70);}
+                else e->dir=-e->dir;
+                break;
+            }
+        }
+    }
+}
+static void draw_projectiles(void){
+    for(int i=0;i<MAX_PROJECTILES;++i){
+        projectile_t *p=&g_projectiles[i];if(p->active&&p->room==g_room)draw_rect(iroundf_local(p->x),iroundf_local(p->y),3,1,fb2d_rgb(255,225,120));
+    }
+}
+static void fire_gun(player_t *p,int facing){
+    if(p->fire_cd>0)return;
+    int gi=active_gun_index();if(gi<0)return;
+    item_t *gun=&items[gi];
+    if(gun->ammo_item<0||gun->ammo_item>=RPG_ITEM_COUNT||items[gun->ammo_item].count<=0){xenon_tone(120,35,XENON_TONE_AMPLITUDE_25);p->fire_cd=8;return;}
+    for(int i=0;i<MAX_PROJECTILES;++i) if(!g_projectiles[i].active){
+        projectile_t *q=&g_projectiles[i];q->active=1;q->room=g_room;q->damage=gun->power;q->life=gun->projectile_life;
+        q->x=p->x+(facing>0?PLAYER_W+2:-3);q->y=p->y+PLAYER_H/2;q->vx=gun->projectile_speed*(facing>0?1.0f:-1.0f);q->vy=0;
+        --items[gun->ammo_item].count;p->fire_cd=gun->fire_rate>0?gun->fire_rate:1;
+        particle_burst(q->x,q->y,4,6,255,210,90);camera_shake(1,3);xenon_tone(1050,18,XENON_TONE_AMPLITUDE_25);return;
+    }
+}
 static void use_consumable(player_t *p){
     for(int i=0;i<RPG_ITEM_COUNT;++i){
         if(items[i].kind==2&&items[i].count>0){
@@ -376,6 +483,8 @@ static void draw_room(const player_t *p,int facing,int won){
     draw_sprite_frame(frame,iroundf_local(p->x),iroundf_local(p->y),facing<0);
 
     for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room){draw_rect(pickups[i].x,pickups[i].y,6,6,fb2d_rgb(230,190,70));}
+    draw_projectiles();
+    draw_particles();
     if(p->attack_frames>0){int ax=facing>0?iroundf_local(p->x)+PLAYER_W:iroundf_local(p->x)-10;draw_rect(ax,iroundf_local(p->y)+3,10,3,fb2d_rgb(245,230,180));}
 
     g_world_mode=0;
@@ -385,6 +494,7 @@ static void draw_room(const player_t *p,int facing,int won){
     for(int i=0;i<CRYSTAL_COUNT&&i<8;++i) if(crystals[i].collected) draw_crystal(9+i*7,8); else draw_rect(11+i*7,11,2,2,fb2d_rgb(65,65,86));
     for(int i=0;i<ROOM_COUNT;++i) draw_rect(286+i*8,8,5,5,i==g_room?fb2d_rgb(109,255,156):fb2d_rgb(65,65,86));
     draw_rect(6,20,44,6,fb2d_rgb(40,28,40)); draw_rect(8,22,(p->hp*40)/(p->max_hp?p->max_hp:1),2,fb2d_rgb(220,72,72));
+    int gun=active_gun_index(); if(gun>=0&&items[gun].ammo_item>=0){char ammo[16];snprintf(ammo,sizeof(ammo),"AMMO %d",items[items[gun].ammo_item].count);draw_text3x5(56,20,ammo,fb2d_rgb(245,220,130),15);}
 
     if(g_npc_flash>0||g_dialog_timer>0||g_active_dialog>=0){
         draw_rect(40,18,240,54,fb2d_rgb(245,240,220)); draw_rect(42,20,236,50,fb2d_rgb(252,249,235));
@@ -417,7 +527,9 @@ static void reset_game(player_t *p,int *facing,int *won){
     for(int i=0;i<RPG_PICKUP_COUNT;++i) pickups[i].collected=0;
     memset(g_door_open,0,sizeof(g_door_open));
     g_last_script_room=-999; g_dialog_timer=0; g_dialog_text=0; g_active_dialog=-1;
-    p->max_hp=PLAYER_MAX_HP; p->hp=PLAYER_MAX_HP; p->invuln=0; p->attack_cd=0; p->attack_frames=0;
+    p->max_hp=PLAYER_MAX_HP; p->hp=PLAYER_MAX_HP; p->invuln=0; p->attack_cd=0; p->attack_frames=0; p->fire_cd=0;
+    memset(g_projectiles,0,sizeof(g_projectiles));memset(g_particles,0,sizeof(g_particles));
+    for(int i=0;i<PARTICLE_EMITTER_COUNT;++i)particle_emitters[i].timer=0;
 }
 
 static void collide_surface(player_t *p,float old_y,float x,float y,float w,float h){
@@ -464,7 +576,7 @@ static void player_attack(player_t *p,int facing){
     for(int i=0;i<ENEMY_COUNT;++i){
         enemy_t *e=&enemies[i]; if(e->room!=g_room||!e->alive)continue;
         if(overlaps(ax,p->y+2,12,PLAYER_H-2,e->x,e->y,e->w,e->h)){
-            e->hp-=weapon_damage(); if(e->hp<=0)e->alive=0; else e->dir=-e->dir;
+            e->hp-=weapon_damage(); particle_burst(e->x+e->w/2,e->y+e->h/2,2,6,255,180,80); if(e->hp<=0){e->alive=0;particle_burst(e->x+e->w/2,e->y+e->h/2,3,12,190,70,70);} else e->dir=-e->dir;
         }
     }
 }
@@ -521,8 +633,9 @@ int main(void){
                 if(left&&!right){player.vx=-PLAYER_SPEED;facing=-1;} else if(right&&!left){player.vx=PLAYER_SPEED;facing=1;} else {player.vx*=.55f;if(player.vx>-.08f&&player.vx<.08f)player.vx=0;}
                 if(pad.a&&!prev.a&&player.on_ground){player.vy=-PLAYER_JUMP_SPEED;player.on_ground=0;snd_jump();}
                 if(pad.x&&!prev.x) player_attack(&player,facing);
+                if(pad.rb||pad.rt>32) fire_gun(&player,facing);
                 if(pad.y&&!prev.y) use_consumable(&player);
-                update_player(&player); update_enemies(&player);
+                update_player(&player); update_enemies(&player); update_projectiles(); update_particles();
                 for(int i=0;i<CRYSTAL_COUNT;++i) if(crystals[i].room==g_room&&!crystals[i].collected&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,crystals[i].x,crystals[i].y,6,7)){crystals[i].collected=1;snd_collect();run_script_event(EVT_ON_COLLECT,g_room,local_crystal_index(i),&player);}
                 for(int i=0;i<RPG_PICKUP_COUNT;++i) if(!pickups[i].collected&&pickups[i].room==g_room&&overlaps(player.x,player.y,PLAYER_W,PLAYER_H,pickups[i].x,pickups[i].y,6,6)){pickups[i].collected=1;inventory_add(pickups[i].item_index,pickups[i].qty);snd_collect();}
                 process_triggers(&player);process_teleports(&player);
@@ -535,7 +648,7 @@ int main(void){
             prev=pad;
         }
         if(g_npc_flash>0)--g_npc_flash; if(g_dialog_timer>0&&g_active_dialog<0)--g_dialog_timer;
-        if(player.invuln>0)--player.invuln; if(player.attack_cd>0)--player.attack_cd; if(player.attack_frames>0)--player.attack_frames;
+        if(player.invuln>0)--player.invuln; if(player.attack_cd>0)--player.attack_cd; if(player.attack_frames>0)--player.attack_frames; if(player.fire_cd>0)--player.fire_cd;
         update_camera(&player);
         draw_room(&player,facing,won);fb2d_present(&g_fb);usb_do_poll();++g_frame_counter;
     }
