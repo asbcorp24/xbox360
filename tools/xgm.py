@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import argparse, json, pathlib, shutil, struct, subprocess, wave, zlib
+from scriptgen import generate_scripts
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DEFAULT_PROJECT = ROOT / "project" / "game.json"
 GAME_HEADER = ROOT / "source" / "generated_game.h"
 ASSET_HEADER = ROOT / "source" / "generated_assets.h"
+SCRIPT_HEADER = ROOT / "source" / "generated_scripts.h"
 
 def load(path):
     try: return json.loads(path.read_text(encoding="utf-8"))
@@ -208,7 +210,46 @@ def cmd_validate(a):
     print("OK")
 
 def cmd_generate(a):
-    d=load(pp(a)); GAME_HEADER.write_text(gen_game(d),encoding="utf-8"); ASSET_HEADER.write_text(gen_assets(d),encoding="utf-8"); print(GAME_HEADER); print(ASSET_HEADER)
+    d=load(pp(a))
+    GAME_HEADER.write_text(gen_game(d),encoding="utf-8")
+    ASSET_HEADER.write_text(gen_assets(d),encoding="utf-8")
+    SCRIPT_HEADER.write_text(generate_scripts(d),encoding="utf-8")
+    print(GAME_HEADER); print(ASSET_HEADER); print(SCRIPT_HEADER)
+
+def cmd_set_flag(a):
+    mutate(a, lambda d: d.setdefault("flags",{}).__setitem__(a.name,a.value))
+
+def cmd_set_var(a):
+    mutate(a, lambda d: d.setdefault("variables",{}).__setitem__(a.name,a.value))
+
+def parse_action(spec):
+    parts=spec.split(":")
+    cmd=parts[0]
+    if cmd in ("set_flag","set_var","add_var"):
+        if len(parts)!=3: raise SystemExit(f"{cmd} format: {cmd}:name:value")
+        return {"cmd":cmd,"name":parts[1],"value":int(parts[2])}
+    if cmd in ("open_door","spawn_enemy"):
+        if len(parts)!=3: raise SystemExit(f"{cmd} format: {cmd}:room:index")
+        return {"cmd":cmd,"room":int(parts[1]),"index":int(parts[2])}
+    if cmd=="change_room":
+        if len(parts)!=4: raise SystemExit("change_room format: change_room:room:x:y")
+        return {"cmd":cmd,"room":int(parts[1]),"x":int(parts[2]),"y":int(parts[3])}
+    if cmd=="dialog":
+        return {"cmd":"dialog","text":spec[len("dialog:"):] if spec.startswith("dialog:") else ""}
+    raise SystemExit(f"Unknown action: {cmd}")
+
+def cmd_add_script(a):
+    def f(d):
+        cond=None
+        if a.if_flag:
+            name,val=a.if_flag.split("=",1); cond={"kind":"flag","name":name,"op":"eq","value":int(val)}
+        elif a.if_var:
+            name,val=a.if_var.split("=",1); cond={"kind":"var","name":name,"op":"eq","value":int(val)}
+        d.setdefault("scripts",[]).append({
+            "event":a.event,"room":a.room,"target":a.target,"once":a.once,
+            "condition":cond,"actions":[parse_action(x) for x in a.do]
+        })
+    mutate(a,f)
 
 def cmd_build(a):
     cmd_generate(a)
@@ -232,6 +273,14 @@ def parser():
     q=s.add_parser("add-door"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("target_room",type=int); q.add_argument("target_x",type=int); q.add_argument("target_y",type=int); q.add_argument("--w",type=int,default=12); q.add_argument("--h",type=int,default=20); q.add_argument("--requires-all-crystals",action="store_true"); q.set_defaults(func=cmd_add_door)
     q=s.add_parser("add-teleport"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("target_room",type=int); q.add_argument("target_x",type=int); q.add_argument("target_y",type=int); q.add_argument("--w",type=int,default=12); q.add_argument("--h",type=int,default=12); q.set_defaults(func=cmd_add_teleport)
     q=s.add_parser("set-player"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.set_defaults(func=cmd_set_player)
+    q=s.add_parser("set-flag"); q.add_argument("name"); q.add_argument("value",type=int); q.set_defaults(func=cmd_set_flag)
+    q=s.add_parser("set-var"); q.add_argument("name"); q.add_argument("value",type=int); q.set_defaults(func=cmd_set_var)
+    q=s.add_parser("add-script")
+    q.add_argument("event",choices=["on_enter","on_interact","on_collect"])
+    q.add_argument("--room",type=int,default=-1); q.add_argument("--target",type=int,default=-1)
+    q.add_argument("--if-flag"); q.add_argument("--if-var"); q.add_argument("--once",action="store_true")
+    q.add_argument("--do",action="append",required=True,help="Action, e.g. set_flag:key:1, add_var:score:1, open_door:1:0, spawn_enemy:0:0, change_room:2:20:145, dialog:Hello")
+    q.set_defaults(func=cmd_add_script)
     q=s.add_parser("set-exit"); q.add_argument("room",type=int); q.add_argument("x",type=int); q.add_argument("y",type=int); q.add_argument("--w",type=int); q.add_argument("--h",type=int); q.set_defaults(func=cmd_set_exit)
     q=s.add_parser("build"); q.add_argument("--docker",action="store_true"); q.set_defaults(func=cmd_build)
     return p
