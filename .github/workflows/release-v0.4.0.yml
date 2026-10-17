@@ -1,0 +1,69 @@
+name: First Release v0.4.0
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Release v0.4.0'
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+    env:
+      DEVKITXENON: /usr/local/xenon
+      PATH: /usr/local/xenon/bin:/usr/local/xenon/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install generator runtime
+        run: |
+          apt-get update
+          apt-get install -y python3
+
+      - name: Validate and generate project
+        run: |
+          python3 tools/xgm.py validate
+          python3 tools/xgm.py generate
+
+      - name: Build
+        run: make
+
+      - name: Verify outputs
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Create v0.4.0 release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.4.0
+          target_commitish: main
+          name: Xbox360 Game Maker v0.4.0
+          body: |
+            Data-driven scripting release.
+
+            New in v0.4.0:
+            - flags and integer variables
+            - conditions on flags / variables
+            - events: on_enter, on_interact, on_collect
+            - actions: set_flag, set_var, add_var
+            - open_door, spawn_enemy, change_room, dialog
+            - script-locked doors
+            - initially inactive enemies
+            - visible bitmap-font dialog boxes
+            - clean script state reset
+            - CLI commands: set-flag, set-var, add-script
+            - demo quest flow using scripted doors and enemy spawning
+
+            Scripts are compiled from project/game.json to static C tables.
+            No JSON parser is required on the Xbox 360.
+          files: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
