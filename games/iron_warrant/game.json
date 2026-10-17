@@ -1,6 +1,6 @@
 {
   "format": 7,
-  "name": "IRON WARRANT",
+  "name": "Iron Warrant",
   "virtual_resolution": [
     320,
     180
@@ -10,11 +10,11 @@
     "start_room": 0,
     "start": [
       24,
-      118
+      126
     ],
     "size": [
       18,
-      42
+      34
     ],
     "speed": 1.55,
     "jump_speed": 4.8,
@@ -33,8 +33,8 @@
   "assets": {
     "player_sprite": "assets/player/player.png",
     "player_frame_size": [
-      16,
-      16
+      64,
+      64
     ],
     "sounds": {},
     "enemy_sprites": {
@@ -47,8 +47,8 @@
       "boss": "assets/enemies/boss.png"
     },
     "enemy_frame_size": [
-      16,
-      16
+      64,
+      64
     ]
   },
   "flow": {
@@ -57,9 +57,9 @@
     "title_image": "assets/ui/title.png",
     "title": "IRON WARRANT",
     "subtitle": "PRESS A / START",
-    "game_over": "DOWN BUT NOT OUT",
-    "ending": "THE OPERATION IS OVER",
-    "credits": "IRON WARRANT  CREATED WITH XGM"
+    "game_over": "YOU WENT DOWN",
+    "ending": "OPERATION COMPLETE",
+    "credits": "IRON WARRANT  XGM PIXEL ACTION"
   },
   "flags": {},
   "variables": {
@@ -223,11 +223,11 @@
       "visuals": {
         "background": [
           {
-            "image": "assets/backgrounds/sky.png",
-            "speed_x": 0.03,
+            "image": "assets/backgrounds/prison_far.png",
+            "speed_x": 0.08,
             "speed_y": 0,
             "repeat_x": true,
-            "repeat_y": true,
+            "repeat_y": false,
             "offset_x": 0,
             "offset_y": 0,
             "order": 0
@@ -235,35 +235,25 @@
         ],
         "parallax": [
           {
-            "image": "assets/backgrounds/far.png",
-            "speed_x": 0.15,
+            "image": "assets/backgrounds/prison_mid.png",
+            "speed_x": 0.35,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 78,
-            "order": 1
-          },
-          {
-            "image": "assets/backgrounds/mid.png",
-            "speed_x": 0.42,
-            "speed_y": 0,
-            "repeat_x": true,
-            "repeat_y": false,
-            "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 2
           }
         ],
         "foreground": [
           {
-            "image": "assets/backgrounds/front.png",
+            "image": "assets/backgrounds/prison_fg.png",
             "speed_x": 1.12,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 10
           }
         ]
@@ -299,9 +289,9 @@
       "enemies": [
         {
           "x": 180,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 142,
           "right": 235,
           "speed": 0.55,
@@ -312,9 +302,9 @@
         },
         {
           "x": 265,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 227,
           "right": 320,
           "speed": 0.55,
@@ -325,9 +315,9 @@
         },
         {
           "x": 350,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 312,
           "right": 405,
           "speed": 0.55,
@@ -338,9 +328,9 @@
         },
         {
           "x": 435,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 397,
           "right": 490,
           "speed": 0.55,
@@ -351,9 +341,9 @@
         },
         {
           "x": 520,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 482,
           "right": 575,
           "speed": 0.55,
@@ -364,9 +354,9 @@
         },
         {
           "x": 605,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 567,
           "right": 660,
           "speed": 0.55,
@@ -377,9 +367,9 @@
         },
         {
           "x": 690,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 652,
           "right": 745,
           "speed": 0.55,
@@ -390,9 +380,9 @@
         },
         {
           "x": 775,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 737,
           "right": 830,
           "speed": 0.55,
@@ -403,9 +393,9 @@
         },
         {
           "x": 930,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 892,
           "right": 985,
           "speed": 0.35,
@@ -416,12 +406,38 @@
         },
         {
           "x": 1015,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 977,
           "right": 1070,
           "speed": 0.35,
+          "spawned": true,
+          "type": "brute",
+          "hp": 7,
+          "damage": 2
+        },
+        {
+          "x": 1010,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 965,
+          "right": 1055,
+          "speed": 0.52,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 1080,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 1035,
+          "right": 1125,
+          "speed": 0.4,
           "spawned": true,
           "type": "brute",
           "hp": 7,
@@ -481,11 +497,11 @@
       "visuals": {
         "background": [
           {
-            "image": "assets/backgrounds/sky.png",
-            "speed_x": 0.03,
+            "image": "assets/backgrounds/motel_far.png",
+            "speed_x": 0.08,
             "speed_y": 0,
             "repeat_x": true,
-            "repeat_y": true,
+            "repeat_y": false,
             "offset_x": 0,
             "offset_y": 0,
             "order": 0
@@ -493,35 +509,25 @@
         ],
         "parallax": [
           {
-            "image": "assets/backgrounds/far.png",
-            "speed_x": 0.15,
+            "image": "assets/backgrounds/motel_mid.png",
+            "speed_x": 0.35,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 78,
-            "order": 1
-          },
-          {
-            "image": "assets/backgrounds/mid.png",
-            "speed_x": 0.42,
-            "speed_y": 0,
-            "repeat_x": true,
-            "repeat_y": false,
-            "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 2
           }
         ],
         "foreground": [
           {
-            "image": "assets/backgrounds/front.png",
+            "image": "assets/backgrounds/motel_fg.png",
             "speed_x": 1.12,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 10
           }
         ]
@@ -557,9 +563,9 @@
       "enemies": [
         {
           "x": 180,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 142,
           "right": 235,
           "speed": 0.62,
@@ -570,9 +576,9 @@
         },
         {
           "x": 265,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 227,
           "right": 320,
           "speed": 0.62,
@@ -583,9 +589,9 @@
         },
         {
           "x": 350,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 312,
           "right": 405,
           "speed": 0.62,
@@ -596,9 +602,9 @@
         },
         {
           "x": 435,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 397,
           "right": 490,
           "speed": 0.62,
@@ -609,9 +615,9 @@
         },
         {
           "x": 520,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 482,
           "right": 575,
           "speed": 0.62,
@@ -622,9 +628,9 @@
         },
         {
           "x": 605,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 567,
           "right": 660,
           "speed": 0.62,
@@ -635,9 +641,9 @@
         },
         {
           "x": 690,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 652,
           "right": 745,
           "speed": 0.62,
@@ -648,9 +654,9 @@
         },
         {
           "x": 775,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 737,
           "right": 830,
           "speed": 0.62,
@@ -661,9 +667,9 @@
         },
         {
           "x": 930,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 892,
           "right": 985,
           "speed": 0.38,
@@ -674,9 +680,9 @@
         },
         {
           "x": 1015,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 977,
           "right": 1070,
           "speed": 0.38,
@@ -684,6 +690,32 @@
           "type": "brute",
           "hp": 8,
           "damage": 2
+        },
+        {
+          "x": 1160,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 1115,
+          "right": 1205,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 1210,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 1165,
+          "right": 1255,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
         }
       ],
       "npcs": [],
@@ -739,11 +771,11 @@
       "visuals": {
         "background": [
           {
-            "image": "assets/backgrounds/sky.png",
-            "speed_x": 0.03,
+            "image": "assets/backgrounds/cafe_far.png",
+            "speed_x": 0.08,
             "speed_y": 0,
             "repeat_x": true,
-            "repeat_y": true,
+            "repeat_y": false,
             "offset_x": 0,
             "offset_y": 0,
             "order": 0
@@ -751,35 +783,25 @@
         ],
         "parallax": [
           {
-            "image": "assets/backgrounds/far.png",
-            "speed_x": 0.15,
+            "image": "assets/backgrounds/cafe_mid.png",
+            "speed_x": 0.35,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 78,
-            "order": 1
-          },
-          {
-            "image": "assets/backgrounds/mid.png",
-            "speed_x": 0.42,
-            "speed_y": 0,
-            "repeat_x": true,
-            "repeat_y": false,
-            "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 2
           }
         ],
         "foreground": [
           {
-            "image": "assets/backgrounds/front.png",
+            "image": "assets/backgrounds/cafe_fg.png",
             "speed_x": 1.12,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 10
           }
         ]
@@ -815,9 +837,9 @@
       "enemies": [
         {
           "x": 180,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 142,
           "right": 235,
           "speed": 0.6,
@@ -828,9 +850,9 @@
         },
         {
           "x": 265,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 227,
           "right": 320,
           "speed": 0.6,
@@ -841,9 +863,9 @@
         },
         {
           "x": 350,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 312,
           "right": 405,
           "speed": 0.6,
@@ -854,9 +876,9 @@
         },
         {
           "x": 435,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 397,
           "right": 490,
           "speed": 0.6,
@@ -867,9 +889,9 @@
         },
         {
           "x": 520,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 482,
           "right": 575,
           "speed": 0.6,
@@ -880,9 +902,9 @@
         },
         {
           "x": 605,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 567,
           "right": 660,
           "speed": 0.6,
@@ -893,9 +915,9 @@
         },
         {
           "x": 690,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 652,
           "right": 745,
           "speed": 0.6,
@@ -906,9 +928,9 @@
         },
         {
           "x": 775,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 737,
           "right": 830,
           "speed": 0.6,
@@ -919,9 +941,9 @@
         },
         {
           "x": 930,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 892,
           "right": 985,
           "speed": 0.36,
@@ -929,6 +951,19 @@
           "type": "brute",
           "hp": 9,
           "damage": 2
+        },
+        {
+          "x": 1020,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 975,
+          "right": 1065,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "bully",
+          "hp": 5,
+          "damage": 1
         }
       ],
       "npcs": [],
@@ -970,11 +1005,11 @@
       "visuals": {
         "background": [
           {
-            "image": "assets/backgrounds/sky.png",
-            "speed_x": 0.03,
+            "image": "assets/backgrounds/house_far.png",
+            "speed_x": 0.08,
             "speed_y": 0,
             "repeat_x": true,
-            "repeat_y": true,
+            "repeat_y": false,
             "offset_x": 0,
             "offset_y": 0,
             "order": 0
@@ -982,35 +1017,25 @@
         ],
         "parallax": [
           {
-            "image": "assets/backgrounds/far.png",
-            "speed_x": 0.15,
+            "image": "assets/backgrounds/house_mid.png",
+            "speed_x": 0.35,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 78,
-            "order": 1
-          },
-          {
-            "image": "assets/backgrounds/mid.png",
-            "speed_x": 0.42,
-            "speed_y": 0,
-            "repeat_x": true,
-            "repeat_y": false,
-            "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 2
           }
         ],
         "foreground": [
           {
-            "image": "assets/backgrounds/front.png",
+            "image": "assets/backgrounds/house_fg.png",
             "speed_x": 1.12,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 10
           }
         ]
@@ -1046,9 +1071,9 @@
       "enemies": [
         {
           "x": 180,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 142,
           "right": 235,
           "speed": 0.58,
@@ -1059,9 +1084,9 @@
         },
         {
           "x": 265,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 227,
           "right": 320,
           "speed": 0.58,
@@ -1072,9 +1097,9 @@
         },
         {
           "x": 350,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 312,
           "right": 405,
           "speed": 0.58,
@@ -1085,9 +1110,9 @@
         },
         {
           "x": 435,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 397,
           "right": 490,
           "speed": 0.58,
@@ -1098,9 +1123,9 @@
         },
         {
           "x": 520,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 482,
           "right": 575,
           "speed": 0.58,
@@ -1111,9 +1136,9 @@
         },
         {
           "x": 605,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 567,
           "right": 660,
           "speed": 0.58,
@@ -1124,9 +1149,9 @@
         },
         {
           "x": 690,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 652,
           "right": 745,
           "speed": 0.58,
@@ -1137,9 +1162,9 @@
         },
         {
           "x": 775,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 737,
           "right": 830,
           "speed": 0.58,
@@ -1150,9 +1175,9 @@
         },
         {
           "x": 860,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 822,
           "right": 915,
           "speed": 0.58,
@@ -1163,9 +1188,9 @@
         },
         {
           "x": 945,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 907,
           "right": 1000,
           "speed": 0.58,
@@ -1176,9 +1201,9 @@
         },
         {
           "x": 1100,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1062,
           "right": 1155,
           "speed": 0.34,
@@ -1189,15 +1214,41 @@
         },
         {
           "x": 1185,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1147,
           "right": 1240,
           "speed": 0.34,
           "spawned": true,
           "type": "brute",
           "hp": 9,
+          "damage": 2
+        },
+        {
+          "x": 1320,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 1275,
+          "right": 1365,
+          "speed": 0.5,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 1380,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 1335,
+          "right": 1425,
+          "speed": 0.4,
+          "spawned": true,
+          "type": "brute",
+          "hp": 8,
           "damage": 2
         }
       ],
@@ -1254,11 +1305,11 @@
       "visuals": {
         "background": [
           {
-            "image": "assets/backgrounds/sky.png",
-            "speed_x": 0.03,
+            "image": "assets/backgrounds/club_far.png",
+            "speed_x": 0.08,
             "speed_y": 0,
             "repeat_x": true,
-            "repeat_y": true,
+            "repeat_y": false,
             "offset_x": 0,
             "offset_y": 0,
             "order": 0
@@ -1266,35 +1317,25 @@
         ],
         "parallax": [
           {
-            "image": "assets/backgrounds/far.png",
-            "speed_x": 0.15,
+            "image": "assets/backgrounds/club_mid.png",
+            "speed_x": 0.35,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 78,
-            "order": 1
-          },
-          {
-            "image": "assets/backgrounds/mid.png",
-            "speed_x": 0.42,
-            "speed_y": 0,
-            "repeat_x": true,
-            "repeat_y": false,
-            "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 2
           }
         ],
         "foreground": [
           {
-            "image": "assets/backgrounds/front.png",
+            "image": "assets/backgrounds/club_fg.png",
             "speed_x": 1.12,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 10
           }
         ]
@@ -1330,9 +1371,9 @@
       "enemies": [
         {
           "x": 180,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 142,
           "right": 235,
           "speed": 0.62,
@@ -1343,9 +1384,9 @@
         },
         {
           "x": 265,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 227,
           "right": 320,
           "speed": 0.62,
@@ -1356,9 +1397,9 @@
         },
         {
           "x": 350,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 312,
           "right": 405,
           "speed": 0.62,
@@ -1369,9 +1410,9 @@
         },
         {
           "x": 435,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 397,
           "right": 490,
           "speed": 0.62,
@@ -1382,9 +1423,9 @@
         },
         {
           "x": 520,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 482,
           "right": 575,
           "speed": 0.62,
@@ -1395,9 +1436,9 @@
         },
         {
           "x": 675,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 637,
           "right": 730,
           "speed": 0.65,
@@ -1408,9 +1449,9 @@
         },
         {
           "x": 760,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 722,
           "right": 815,
           "speed": 0.65,
@@ -1421,9 +1462,9 @@
         },
         {
           "x": 845,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 807,
           "right": 900,
           "speed": 0.65,
@@ -1434,9 +1475,9 @@
         },
         {
           "x": 1000,
-          "y": 122,
-          "w": 28,
-          "h": 46,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 962,
           "right": 1055,
           "speed": 0.32,
@@ -1447,9 +1488,9 @@
         },
         {
           "x": 1085,
-          "y": 122,
-          "w": 28,
-          "h": 46,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1047,
           "right": 1140,
           "speed": 0.32,
@@ -1460,12 +1501,25 @@
         },
         {
           "x": 1170,
-          "y": 122,
-          "w": 28,
-          "h": 46,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1132,
           "right": 1225,
           "speed": 0.32,
+          "spawned": true,
+          "type": "bouncer",
+          "hp": 10,
+          "damage": 2
+        },
+        {
+          "x": 1220,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 1175,
+          "right": 1265,
+          "speed": 0.38,
           "spawned": true,
           "type": "bouncer",
           "hp": 10,
@@ -1525,11 +1579,11 @@
       "visuals": {
         "background": [
           {
-            "image": "assets/backgrounds/sky.png",
-            "speed_x": 0.03,
+            "image": "assets/backgrounds/warehouse_far.png",
+            "speed_x": 0.08,
             "speed_y": 0,
             "repeat_x": true,
-            "repeat_y": true,
+            "repeat_y": false,
             "offset_x": 0,
             "offset_y": 0,
             "order": 0
@@ -1537,35 +1591,25 @@
         ],
         "parallax": [
           {
-            "image": "assets/backgrounds/far.png",
-            "speed_x": 0.15,
+            "image": "assets/backgrounds/warehouse_mid.png",
+            "speed_x": 0.35,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 78,
-            "order": 1
-          },
-          {
-            "image": "assets/backgrounds/mid.png",
-            "speed_x": 0.42,
-            "speed_y": 0,
-            "repeat_x": true,
-            "repeat_y": false,
-            "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 2
           }
         ],
         "foreground": [
           {
-            "image": "assets/backgrounds/front.png",
+            "image": "assets/backgrounds/warehouse_fg.png",
             "speed_x": 1.12,
             "speed_y": 0,
             "repeat_x": true,
             "repeat_y": false,
             "offset_x": 0,
-            "offset_y": 90,
+            "offset_y": 0,
             "order": 10
           }
         ]
@@ -1601,9 +1645,9 @@
       "enemies": [
         {
           "x": 180,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 142,
           "right": 235,
           "speed": 0.6,
@@ -1614,9 +1658,9 @@
         },
         {
           "x": 265,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 227,
           "right": 320,
           "speed": 0.6,
@@ -1627,9 +1671,9 @@
         },
         {
           "x": 350,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 312,
           "right": 405,
           "speed": 0.6,
@@ -1640,9 +1684,9 @@
         },
         {
           "x": 435,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 397,
           "right": 490,
           "speed": 0.6,
@@ -1653,9 +1697,9 @@
         },
         {
           "x": 520,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 482,
           "right": 575,
           "speed": 0.6,
@@ -1666,9 +1710,9 @@
         },
         {
           "x": 605,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 567,
           "right": 660,
           "speed": 0.6,
@@ -1679,9 +1723,9 @@
         },
         {
           "x": 690,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 652,
           "right": 745,
           "speed": 0.6,
@@ -1692,9 +1736,9 @@
         },
         {
           "x": 775,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 737,
           "right": 830,
           "speed": 0.6,
@@ -1705,9 +1749,9 @@
         },
         {
           "x": 860,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 822,
           "right": 915,
           "speed": 0.6,
@@ -1718,9 +1762,9 @@
         },
         {
           "x": 945,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 907,
           "right": 1000,
           "speed": 0.6,
@@ -1731,9 +1775,9 @@
         },
         {
           "x": 1100,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 1062,
           "right": 1155,
           "speed": 0.68,
@@ -1744,9 +1788,9 @@
         },
         {
           "x": 1185,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 1147,
           "right": 1240,
           "speed": 0.68,
@@ -1757,9 +1801,9 @@
         },
         {
           "x": 1270,
-          "y": 122,
+          "y": 126,
           "w": 18,
-          "h": 38,
+          "h": 34,
           "left": 1232,
           "right": 1325,
           "speed": 0.68,
@@ -1770,9 +1814,9 @@
         },
         {
           "x": 1425,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1387,
           "right": 1480,
           "speed": 0.35,
@@ -1783,9 +1827,9 @@
         },
         {
           "x": 1510,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1472,
           "right": 1565,
           "speed": 0.35,
@@ -1796,9 +1840,9 @@
         },
         {
           "x": 1595,
-          "y": 122,
-          "w": 24,
-          "h": 42,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1557,
           "right": 1570,
           "speed": 0.35,
@@ -1809,15 +1853,28 @@
         },
         {
           "x": 1750,
-          "y": 122,
-          "w": 26,
-          "h": 44,
+          "y": 126,
+          "w": 18,
+          "h": 34,
           "left": 1712,
           "right": 1570,
           "speed": 0.7,
           "spawned": true,
           "type": "boss",
           "hp": 18,
+          "damage": 3
+        },
+        {
+          "x": 1530,
+          "y": 126,
+          "w": 18,
+          "h": 34,
+          "left": 1485,
+          "right": 1575,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "boss",
+          "hp": 24,
           "damage": 3
         }
       ],
