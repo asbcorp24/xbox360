@@ -1,4 +1,4 @@
-name: Build PNG Showcase Demo
+name: Build Neon District Demo
 
 on:
   push:
@@ -29,11 +29,11 @@ jobs:
         run: |
           python3 -m py_compile tools/simulator.py tools/xgm.py tools/scriptgen.py tools/rpggen.py tools/visualgen.py
 
-      - name: Validate PNG showcase
-        run: python3 tools/xgm.py --project demos/png_showcase/game.json validate
+      - name: Validate Neon District
+        run: python3 tools/xgm.py --project games/neon_district validate
 
-      - name: Generate PNG showcase
-        run: python3 tools/xgm.py --project demos/png_showcase/game.json generate
+      - name: Generate Neon District
+        run: python3 tools/xgm.py --project games/neon_district generate
 
       - name: Build Xbox 360 showcase
         run: |
@@ -46,7 +46,7 @@ jobs:
           test -f xbox360-pixel.elf32
           ls -lh xbox360-pixel.elf xbox360-pixel.elf32
 
-      - name: Upload PNG showcase binaries
+      - name: Upload Neon District binaries
         uses: actions/upload-artifact@v4
         with:
           name: xgm-png-showcase
