@@ -162,6 +162,12 @@ static const int room_camera_deadzone[ROOM_COUNT] = {{ {", ".join(str(int(r.get(
 #define DOOR_COUNT {len(doors)}
 #define TELEPORT_COUNT {len(teleports)}
 #define PARTICLE_EMITTER_COUNT {len(emitters)}
+#define BOOT_FRAMES {int(d.get("flow",{}).get("boot_frames",90))}
+#define TITLE_TEXT "{cstr(d.get("flow",{}).get("title",d.get("name","XGM GAME")))}"
+#define TITLE_SUBTEXT "{cstr(d.get("flow",{}).get("subtitle","PRESS A TO START"))}"
+#define GAME_OVER_TEXT "{cstr(d.get("flow",{}).get("game_over","GAME OVER"))}"
+#define ENDING_TEXT "{cstr(d.get("flow",{}).get("ending","MISSION COMPLETE"))}"
+#define CREDITS_TEXT "{cstr(d.get("flow",{}).get("credits","CREATED WITH XGM"))}"
 static const room_platform_t platforms[{count(len(plats))}]={{\n{pl}\n}};
 static room_crystal_t crystals[{count(len(crystals))}]={{\n{cr}\n}};
 static const tile_cell_t tiles[{count(len(tiles))}]={{\n{tl}\n}};
@@ -200,6 +206,20 @@ def gen_assets(d):
     add_sheet("TANK","enemy_tank_rgba",enemy_sprites.get("tank"),enemy_frame)
 
     add_sheet("NPC","npc_sprite_rgba",a.get("npc_sprite"),a.get("npc_frame_size",[16,16]))
+
+    flow=d.get("flow",{})
+    def add_screen(prefix, symbol, path):
+        if path:
+            chunks.append(f"#define {prefix}_HAS_IMAGE 1\n")
+            w,h,pix=decode_png((ROOT/path).resolve())
+            if (w,h)!=(320,180): raise SystemExit(f"{path}: UI screen PNG must be 320x180")
+            chunks.append(f"#define {prefix}_W {w}\n#define {prefix}_H {h}\n")
+            chunks.append(bytes_c(symbol,pix))
+        else:
+            chunks.append(f"#define {prefix}_HAS_IMAGE 0\n#define {prefix}_W 1\n#define {prefix}_H 1\n")
+            chunks.append(f"static const unsigned char {symbol}[4]={{0,0,0,0}};\n")
+    add_screen("BOOT_SCREEN","boot_screen_rgba",flow.get("boot_image"))
+    add_screen("TITLE_SCREEN","title_screen_rgba",flow.get("title_image"))
 
     sounds=a.get("sounds",{})
     for key in ("jump","collect","hit","door","npc"):
