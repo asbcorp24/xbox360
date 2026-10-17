@@ -9,3 +9,4 @@ source/generated_game.h
 source/generated_assets.h
 source/generated_scripts.h
 source/generated_rpg.h
+source/generated_visuals.h
