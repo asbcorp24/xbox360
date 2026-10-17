@@ -519,6 +519,95 @@ Camera features currently include:
 
 
 
+
+
+## Shooting, ammo and particles
+
+Ranged weapons are inventory items of kind `ranged`. Ammo is a normal inventory item of kind `ammo`.
+
+Create ammunition:
+
+```bash
+./xgm add-item pistol_ammo ammo --count 30
+```
+
+Create a pistol:
+
+```bash
+./xgm add-item pistol ranged \
+  --power 2 \
+  --count 1 \
+  --ammo pistol_ammo \
+  --fire-rate 8 \
+  --projectile-speed 6.0 \
+  --projectile-life 75
+```
+
+Add an ammo pickup:
+
+```bash
+./xgm add-pickup 0 pistol_ammo 220 148 --qty 12
+```
+
+Xbox 360 controls:
+
+```text
+RB / Right Trigger = fire
+X                  = melee attack
+Y                  = consumable
+```
+
+Windows Simulator:
+
+```text
+C / Right Ctrl = fire
+X              = melee
+Y              = consumable
+```
+
+The projectile system supports:
+
+```text
+ammo consumption
+fire-rate cooldown
+projectile speed/lifetime
+enemy damage
+solid platform/tile impact
+muzzle particles
+impact sparks
+enemy death particles
+camera shake
+```
+
+### Particle emitters
+
+Add smoke:
+
+```bash
+./xgm add-particle-emitter 0 smoke 150 148 \
+  --rate 16 --life 45 --speed 0.5 --spread 0.6 \
+  --gravity -0.01 --r 170 --g 180 --b 190
+```
+
+Add sparks:
+
+```bash
+./xgm add-particle-emitter 1 spark 245 118 \
+  --rate 22 --life 20 --speed 1.0 --spread 1.2 \
+  --gravity 0.08 --r 255 --g 200 --b 90
+```
+
+Emitter types:
+
+```text
+smoke
+spark
+dust
+fire
+```
+
+The Xbox runtime uses fixed pools (32 projectiles and 128 particles) to avoid per-frame heap allocation.
+
 ## All-features demo game
 
 A separate demo project is included specifically to test the whole constructor without touching the main project:
@@ -652,7 +741,8 @@ Do not edit generated files manually; run:
 - Left stick / D-pad: move
 - A: jump
 - B: interact with NPCs / doors / confirm dialogue
-- X: attack
+- X: melee attack
+- RB / Right Trigger: fire ranged weapon
 - Y: use first available consumable
 - D-pad / left stick: move and select dialogue answers
 - Start: restart
