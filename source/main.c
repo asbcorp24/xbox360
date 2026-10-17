@@ -444,18 +444,29 @@ static void draw_tile(const tile_cell_t *t){
 static void draw_enemy(const enemy_t *e){
     int frame=(g_frame_counter/8)%4;
     const unsigned char *rgba=enemy_walker_rgba;
-    int sw=WALKER_SHEET_W,sh=WALKER_SHEET_H,fw=WALKER_FRAME_W,fh=WALKER_FRAME_H,fc=WALKER_FRAME_COUNT;
-    if(e->type==2){rgba=enemy_charger_rgba;sw=CHARGER_SHEET_W;sh=CHARGER_SHEET_H;fw=CHARGER_FRAME_W;fh=CHARGER_FRAME_H;fc=CHARGER_FRAME_COUNT;}
-    else if(e->type==3){rgba=enemy_tank_rgba;sw=TANK_SHEET_W;sh=TANK_SHEET_H;fw=TANK_FRAME_W;fh=TANK_FRAME_H;fc=TANK_FRAME_COUNT;}
-    int x=iroundf_local(e->x)+(e->w-fw)/2;
-    int y=iroundf_local(e->y)+e->h-fh;
-    draw_rgba_frame(rgba,sw,sh,fw,fh,fc,frame,x,y,e->dir<0);
+    int sw=WALKER_SHEET_W,sh=WALKER_SHEET_H,fw=WALKER_FRAME_W,fh=WALKER_FRAME_H,fc=WALKER_FRAME_COUNT,has=WALKER_HAS_SPRITE;
+    if(e->type==2){rgba=enemy_charger_rgba;sw=CHARGER_SHEET_W;sh=CHARGER_SHEET_H;fw=CHARGER_FRAME_W;fh=CHARGER_FRAME_H;fc=CHARGER_FRAME_COUNT;has=CHARGER_HAS_SPRITE;}
+    else if(e->type==3){rgba=enemy_tank_rgba;sw=TANK_SHEET_W;sh=TANK_SHEET_H;fw=TANK_FRAME_W;fh=TANK_FRAME_H;fc=TANK_FRAME_COUNT;has=TANK_HAS_SPRITE;}
+    if(has){
+        int x=iroundf_local(e->x)+(e->w-fw)/2;
+        int y=iroundf_local(e->y)+e->h-fh;
+        draw_rgba_frame(rgba,sw,sh,fw,fh,fc,frame,x,y,e->dir<0);
+    }else{
+        int x=iroundf_local(e->x),y=iroundf_local(e->y);
+        draw_rect(x,y,e->w,e->h,fb2d_rgb(190,60,72));
+        draw_rect(x+1,y+1,e->w-2,e->h-3,fb2d_rgb(238,93,93));
+    }
 }
 
 static void draw_npc(const npc_t *n){
-    int x=n->x+(n->w-NPC_FRAME_W)/2;
-    int y=n->y+n->h-NPC_FRAME_H;
-    draw_rgba_frame(npc_sprite_rgba,NPC_SHEET_W,NPC_SHEET_H,NPC_FRAME_W,NPC_FRAME_H,NPC_FRAME_COUNT,0,x,y,0);
+    if(NPC_HAS_SPRITE){
+        int x=n->x+(n->w-NPC_FRAME_W)/2;
+        int y=n->y+n->h-NPC_FRAME_H;
+        draw_rgba_frame(npc_sprite_rgba,NPC_SHEET_W,NPC_SHEET_H,NPC_FRAME_W,NPC_FRAME_H,NPC_FRAME_COUNT,0,x,y,0);
+    }else{
+        draw_rect(n->x,n->y,n->w,n->h,fb2d_rgb(48,92,137));
+        draw_rect(n->x+1,n->y+1,n->w-2,n->h-4,fb2d_rgb(79,156,190));
+    }
 }
 
 static void draw_door(const door_t *d,int open){
