@@ -1,0 +1,1858 @@
+{
+  "format": 7,
+  "name": "IRON WARRANT",
+  "virtual_resolution": [
+    320,
+    180
+  ],
+  "tile_size": 16,
+  "player": {
+    "start_room": 0,
+    "start": [
+      24,
+      118
+    ],
+    "size": [
+      18,
+      42
+    ],
+    "speed": 1.55,
+    "jump_speed": 4.8,
+    "gravity": 0.24,
+    "max_fall_speed": 5.2,
+    "health": 10,
+    "damage": 2
+  },
+  "exit": {
+    "room": 5,
+    "x": 1560,
+    "y": 130,
+    "w": 20,
+    "h": 30
+  },
+  "assets": {
+    "player_sprite": "assets/player/player.png",
+    "player_frame_size": [
+      16,
+      16
+    ],
+    "sounds": {},
+    "enemy_sprites": {
+      "shiv": "assets/enemies/shiv.png",
+      "brute": "assets/enemies/brute.png",
+      "hitman": "assets/enemies/hitman.png",
+      "merc": "assets/enemies/merc.png",
+      "bully": "assets/enemies/bully.png",
+      "bouncer": "assets/enemies/bouncer.png",
+      "boss": "assets/enemies/boss.png"
+    },
+    "enemy_frame_size": [
+      16,
+      16
+    ]
+  },
+  "flow": {
+    "boot_frames": 75,
+    "boot_image": "assets/ui/boot.png",
+    "title_image": "assets/ui/title.png",
+    "title": "IRON WARRANT",
+    "subtitle": "PRESS A / START",
+    "game_over": "DOWN BUT NOT OUT",
+    "ending": "THE OPERATION IS OVER",
+    "credits": "IRON WARRANT  CREATED WITH XGM"
+  },
+  "flags": {},
+  "variables": {
+    "score": 0
+  },
+  "items": [
+    {
+      "name": "medkit",
+      "kind": "consumable",
+      "power": 3,
+      "count": 3
+    },
+    {
+      "name": "pistol_ammo",
+      "kind": "ammo",
+      "power": 0,
+      "count": 36
+    },
+    {
+      "name": "service_pistol",
+      "kind": "ranged",
+      "power": 3,
+      "count": 1,
+      "ammo": "pistol_ammo",
+      "fire_rate": 8,
+      "projectile_speed": 6.5,
+      "projectile_life": 80
+    }
+  ],
+  "dialogues": [],
+  "scripts": [
+    {
+      "event": "on_enter",
+      "room": 0,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "FALSE ARREST. SURVIVE THE SHOWER BLOCK."
+        },
+        {
+          "cmd": "emit_particles",
+          "name": "spark",
+          "value": 8,
+          "x": 110,
+          "y": 118
+        }
+      ]
+    },
+    {
+      "event": "on_enter",
+      "room": 1,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "RAIN. MOTEL ALLEY. PROTECT YOUR PARTNER."
+        },
+        {
+          "cmd": "emit_particles",
+          "name": "spark",
+          "value": 8,
+          "x": 110,
+          "y": 118
+        }
+      ]
+    },
+    {
+      "event": "on_enter",
+      "room": 2,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "THE PARKING LOT BULLIES PICKED THE WRONG FIGHT."
+        },
+        {
+          "cmd": "emit_particles",
+          "name": "spark",
+          "value": 8,
+          "x": 110,
+          "y": 118
+        }
+      ]
+    },
+    {
+      "event": "on_enter",
+      "room": 3,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "A TACTICAL TEAM HAS THE HOUSE SURROUNDED."
+        },
+        {
+          "cmd": "emit_particles",
+          "name": "spark",
+          "value": 8,
+          "x": 110,
+          "y": 118
+        }
+      ]
+    },
+    {
+      "event": "on_enter",
+      "room": 4,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "ATLANTA. FIND THE BROKER THROUGH THE CLUB."
+        },
+        {
+          "cmd": "emit_particles",
+          "name": "spark",
+          "value": 8,
+          "x": 110,
+          "y": 118
+        }
+      ]
+    },
+    {
+      "event": "on_enter",
+      "room": 5,
+      "target": -1,
+      "once": true,
+      "condition": null,
+      "actions": [
+        {
+          "cmd": "dialog",
+          "text": "FINAL ASSAULT. END THE COUNTERFEIT OPERATION."
+        },
+        {
+          "cmd": "emit_particles",
+          "name": "fire",
+          "value": 18,
+          "x": 110,
+          "y": 118
+        }
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "name": "CHAPTER 1 - PRISON SHOWER",
+      "world_width": 1180,
+      "camera": {
+        "smoothing": 0.16,
+        "deadzone": 44
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/backgrounds/sky.png",
+            "speed_x": 0.03,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "offset_x": 0,
+            "offset_y": 0,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/backgrounds/far.png",
+            "speed_x": 0.15,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 78,
+            "order": 1
+          },
+          {
+            "image": "assets/backgrounds/mid.png",
+            "speed_x": 0.42,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/backgrounds/front.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 10
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "x": 0,
+          "y": 160,
+          "w": 1180,
+          "h": 20
+        },
+        {
+          "x": 260,
+          "y": 132,
+          "w": 95,
+          "h": 8
+        },
+        {
+          "x": 560,
+          "y": 118,
+          "w": 90,
+          "h": 8
+        },
+        {
+          "x": 900,
+          "y": 136,
+          "w": 100,
+          "h": 8
+        }
+      ],
+      "crystals": [],
+      "tiles": [],
+      "enemies": [
+        {
+          "x": 180,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 142,
+          "right": 235,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 265,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 227,
+          "right": 320,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 350,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 312,
+          "right": 405,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 435,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 397,
+          "right": 490,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 520,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 482,
+          "right": 575,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 605,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 567,
+          "right": 660,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 690,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 652,
+          "right": 745,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 775,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 737,
+          "right": 830,
+          "speed": 0.55,
+          "spawned": true,
+          "type": "shiv",
+          "hp": 3,
+          "damage": 1
+        },
+        {
+          "x": 930,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 892,
+          "right": 985,
+          "speed": 0.35,
+          "spawned": true,
+          "type": "brute",
+          "hp": 7,
+          "damage": 2
+        },
+        {
+          "x": 1015,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 977,
+          "right": 1070,
+          "speed": 0.35,
+          "spawned": true,
+          "type": "brute",
+          "hp": 7,
+          "damage": 2
+        }
+      ],
+      "npcs": [],
+      "triggers": [
+        {
+          "x": 80,
+          "y": 120,
+          "w": 32,
+          "h": 40,
+          "action": "checkpoint",
+          "target_room": -1,
+          "target_x": 0,
+          "target_y": 0,
+          "once": true
+        }
+      ],
+      "doors": [],
+      "teleports": [
+        {
+          "x": 1154,
+          "y": 142,
+          "w": 18,
+          "h": 18,
+          "target_room": 1,
+          "target_x": 24,
+          "target_y": 118
+        }
+      ],
+      "pickups": [],
+      "particle_emitters": [
+        {
+          "type": "smoke",
+          "x": 430,
+          "y": 145,
+          "rate": 18,
+          "life": 45,
+          "speed": 0.45,
+          "spread": 0.7,
+          "gravity": -0.01,
+          "r": 170,
+          "g": 185,
+          "b": 190
+        }
+      ]
+    },
+    {
+      "name": "CHAPTER 2 - MOTEL AMBUSH",
+      "world_width": 1280,
+      "camera": {
+        "smoothing": 0.16,
+        "deadzone": 44
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/backgrounds/sky.png",
+            "speed_x": 0.03,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "offset_x": 0,
+            "offset_y": 0,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/backgrounds/far.png",
+            "speed_x": 0.15,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 78,
+            "order": 1
+          },
+          {
+            "image": "assets/backgrounds/mid.png",
+            "speed_x": 0.42,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/backgrounds/front.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 10
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "x": 0,
+          "y": 160,
+          "w": 1280,
+          "h": 20
+        },
+        {
+          "x": 260,
+          "y": 132,
+          "w": 95,
+          "h": 8
+        },
+        {
+          "x": 560,
+          "y": 118,
+          "w": 90,
+          "h": 8
+        },
+        {
+          "x": 900,
+          "y": 136,
+          "w": 100,
+          "h": 8
+        }
+      ],
+      "crystals": [],
+      "tiles": [],
+      "enemies": [
+        {
+          "x": 180,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 142,
+          "right": 235,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 265,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 227,
+          "right": 320,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 350,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 312,
+          "right": 405,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 435,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 397,
+          "right": 490,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 520,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 482,
+          "right": 575,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 605,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 567,
+          "right": 660,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 690,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 652,
+          "right": 745,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 775,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 737,
+          "right": 830,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 930,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 892,
+          "right": 985,
+          "speed": 0.38,
+          "spawned": true,
+          "type": "brute",
+          "hp": 8,
+          "damage": 2
+        },
+        {
+          "x": 1015,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 977,
+          "right": 1070,
+          "speed": 0.38,
+          "spawned": true,
+          "type": "brute",
+          "hp": 8,
+          "damage": 2
+        }
+      ],
+      "npcs": [],
+      "triggers": [
+        {
+          "x": 80,
+          "y": 120,
+          "w": 32,
+          "h": 40,
+          "action": "checkpoint",
+          "target_room": -1,
+          "target_x": 0,
+          "target_y": 0,
+          "once": true
+        }
+      ],
+      "doors": [],
+      "teleports": [
+        {
+          "x": 1254,
+          "y": 142,
+          "w": 18,
+          "h": 18,
+          "target_room": 2,
+          "target_x": 24,
+          "target_y": 118
+        }
+      ],
+      "pickups": [],
+      "particle_emitters": [
+        {
+          "type": "spark",
+          "x": 720,
+          "y": 138,
+          "rate": 24,
+          "life": 22,
+          "speed": 0.9,
+          "spread": 1.1,
+          "gravity": 0.07,
+          "r": 110,
+          "g": 170,
+          "b": 255
+        }
+      ]
+    },
+    {
+      "name": "CHAPTER 3 - CAFE PARKING LOT",
+      "world_width": 1120,
+      "camera": {
+        "smoothing": 0.16,
+        "deadzone": 44
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/backgrounds/sky.png",
+            "speed_x": 0.03,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "offset_x": 0,
+            "offset_y": 0,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/backgrounds/far.png",
+            "speed_x": 0.15,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 78,
+            "order": 1
+          },
+          {
+            "image": "assets/backgrounds/mid.png",
+            "speed_x": 0.42,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/backgrounds/front.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 10
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "x": 0,
+          "y": 160,
+          "w": 1120,
+          "h": 20
+        },
+        {
+          "x": 260,
+          "y": 132,
+          "w": 95,
+          "h": 8
+        },
+        {
+          "x": 560,
+          "y": 118,
+          "w": 90,
+          "h": 8
+        },
+        {
+          "x": 900,
+          "y": 136,
+          "w": 100,
+          "h": 8
+        }
+      ],
+      "crystals": [],
+      "tiles": [],
+      "enemies": [
+        {
+          "x": 180,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 142,
+          "right": 235,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 265,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 227,
+          "right": 320,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 350,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 312,
+          "right": 405,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 435,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 397,
+          "right": 490,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 520,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 482,
+          "right": 575,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 605,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 567,
+          "right": 660,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 690,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 652,
+          "right": 745,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 775,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 737,
+          "right": 830,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 930,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 892,
+          "right": 985,
+          "speed": 0.36,
+          "spawned": true,
+          "type": "brute",
+          "hp": 9,
+          "damage": 2
+        }
+      ],
+      "npcs": [],
+      "triggers": [
+        {
+          "x": 80,
+          "y": 120,
+          "w": 32,
+          "h": 40,
+          "action": "checkpoint",
+          "target_room": -1,
+          "target_x": 0,
+          "target_y": 0,
+          "once": true
+        }
+      ],
+      "doors": [],
+      "teleports": [
+        {
+          "x": 1094,
+          "y": 142,
+          "w": 18,
+          "h": 18,
+          "target_room": 3,
+          "target_x": 24,
+          "target_y": 118
+        }
+      ],
+      "pickups": [],
+      "particle_emitters": []
+    },
+    {
+      "name": "CHAPTER 4 - HOUSE ASSAULT",
+      "world_width": 1460,
+      "camera": {
+        "smoothing": 0.16,
+        "deadzone": 44
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/backgrounds/sky.png",
+            "speed_x": 0.03,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "offset_x": 0,
+            "offset_y": 0,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/backgrounds/far.png",
+            "speed_x": 0.15,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 78,
+            "order": 1
+          },
+          {
+            "image": "assets/backgrounds/mid.png",
+            "speed_x": 0.42,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/backgrounds/front.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 10
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "x": 0,
+          "y": 160,
+          "w": 1460,
+          "h": 20
+        },
+        {
+          "x": 260,
+          "y": 132,
+          "w": 95,
+          "h": 8
+        },
+        {
+          "x": 560,
+          "y": 118,
+          "w": 90,
+          "h": 8
+        },
+        {
+          "x": 900,
+          "y": 136,
+          "w": 100,
+          "h": 8
+        }
+      ],
+      "crystals": [],
+      "tiles": [],
+      "enemies": [
+        {
+          "x": 180,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 142,
+          "right": 235,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 265,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 227,
+          "right": 320,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 350,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 312,
+          "right": 405,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 435,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 397,
+          "right": 490,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 520,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 482,
+          "right": 575,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 605,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 567,
+          "right": 660,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 690,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 652,
+          "right": 745,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 775,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 737,
+          "right": 830,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 860,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 822,
+          "right": 915,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 945,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 907,
+          "right": 1000,
+          "speed": 0.58,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 1100,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 1062,
+          "right": 1155,
+          "speed": 0.34,
+          "spawned": true,
+          "type": "brute",
+          "hp": 9,
+          "damage": 2
+        },
+        {
+          "x": 1185,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 1147,
+          "right": 1240,
+          "speed": 0.34,
+          "spawned": true,
+          "type": "brute",
+          "hp": 9,
+          "damage": 2
+        }
+      ],
+      "npcs": [],
+      "triggers": [
+        {
+          "x": 80,
+          "y": 120,
+          "w": 32,
+          "h": 40,
+          "action": "checkpoint",
+          "target_room": -1,
+          "target_x": 0,
+          "target_y": 0,
+          "once": true
+        }
+      ],
+      "doors": [],
+      "teleports": [
+        {
+          "x": 1434,
+          "y": 142,
+          "w": 18,
+          "h": 18,
+          "target_room": 4,
+          "target_x": 24,
+          "target_y": 118
+        }
+      ],
+      "pickups": [],
+      "particle_emitters": [
+        {
+          "type": "dust",
+          "x": 600,
+          "y": 145,
+          "rate": 20,
+          "life": 38,
+          "speed": 0.5,
+          "spread": 0.8,
+          "gravity": 0.03,
+          "r": 170,
+          "g": 155,
+          "b": 145
+        }
+      ]
+    },
+    {
+      "name": "CHAPTER 5 - ATLANTA CLUB",
+      "world_width": 1320,
+      "camera": {
+        "smoothing": 0.16,
+        "deadzone": 44
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/backgrounds/sky.png",
+            "speed_x": 0.03,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "offset_x": 0,
+            "offset_y": 0,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/backgrounds/far.png",
+            "speed_x": 0.15,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 78,
+            "order": 1
+          },
+          {
+            "image": "assets/backgrounds/mid.png",
+            "speed_x": 0.42,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/backgrounds/front.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 10
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "x": 0,
+          "y": 160,
+          "w": 1320,
+          "h": 20
+        },
+        {
+          "x": 260,
+          "y": 132,
+          "w": 95,
+          "h": 8
+        },
+        {
+          "x": 560,
+          "y": 118,
+          "w": 90,
+          "h": 8
+        },
+        {
+          "x": 900,
+          "y": 136,
+          "w": 100,
+          "h": 8
+        }
+      ],
+      "crystals": [],
+      "tiles": [],
+      "enemies": [
+        {
+          "x": 180,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 142,
+          "right": 235,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 265,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 227,
+          "right": 320,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 350,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 312,
+          "right": 405,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 435,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 397,
+          "right": 490,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 520,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 482,
+          "right": 575,
+          "speed": 0.62,
+          "spawned": true,
+          "type": "bully",
+          "hp": 4,
+          "damage": 1
+        },
+        {
+          "x": 675,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 637,
+          "right": 730,
+          "speed": 0.65,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 2
+        },
+        {
+          "x": 760,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 722,
+          "right": 815,
+          "speed": 0.65,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 2
+        },
+        {
+          "x": 845,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 807,
+          "right": 900,
+          "speed": 0.65,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 2
+        },
+        {
+          "x": 1000,
+          "y": 122,
+          "w": 28,
+          "h": 46,
+          "left": 962,
+          "right": 1055,
+          "speed": 0.32,
+          "spawned": true,
+          "type": "bouncer",
+          "hp": 10,
+          "damage": 2
+        },
+        {
+          "x": 1085,
+          "y": 122,
+          "w": 28,
+          "h": 46,
+          "left": 1047,
+          "right": 1140,
+          "speed": 0.32,
+          "spawned": true,
+          "type": "bouncer",
+          "hp": 10,
+          "damage": 2
+        },
+        {
+          "x": 1170,
+          "y": 122,
+          "w": 28,
+          "h": 46,
+          "left": 1132,
+          "right": 1225,
+          "speed": 0.32,
+          "spawned": true,
+          "type": "bouncer",
+          "hp": 10,
+          "damage": 2
+        }
+      ],
+      "npcs": [],
+      "triggers": [
+        {
+          "x": 80,
+          "y": 120,
+          "w": 32,
+          "h": 40,
+          "action": "checkpoint",
+          "target_room": -1,
+          "target_x": 0,
+          "target_y": 0,
+          "once": true
+        }
+      ],
+      "doors": [],
+      "teleports": [
+        {
+          "x": 1294,
+          "y": 142,
+          "w": 18,
+          "h": 18,
+          "target_room": 5,
+          "target_x": 24,
+          "target_y": 118
+        }
+      ],
+      "pickups": [],
+      "particle_emitters": [
+        {
+          "type": "smoke",
+          "x": 860,
+          "y": 145,
+          "rate": 15,
+          "life": 40,
+          "speed": 0.6,
+          "spread": 0.9,
+          "gravity": -0.01,
+          "r": 150,
+          "g": 80,
+          "b": 170
+        }
+      ]
+    },
+    {
+      "name": "CHAPTER 6 - FINAL WAREHOUSE",
+      "world_width": 1600,
+      "camera": {
+        "smoothing": 0.16,
+        "deadzone": 44
+      },
+      "visuals": {
+        "background": [
+          {
+            "image": "assets/backgrounds/sky.png",
+            "speed_x": 0.03,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": true,
+            "offset_x": 0,
+            "offset_y": 0,
+            "order": 0
+          }
+        ],
+        "parallax": [
+          {
+            "image": "assets/backgrounds/far.png",
+            "speed_x": 0.15,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 78,
+            "order": 1
+          },
+          {
+            "image": "assets/backgrounds/mid.png",
+            "speed_x": 0.42,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 2
+          }
+        ],
+        "foreground": [
+          {
+            "image": "assets/backgrounds/front.png",
+            "speed_x": 1.12,
+            "speed_y": 0,
+            "repeat_x": true,
+            "repeat_y": false,
+            "offset_x": 0,
+            "offset_y": 90,
+            "order": 10
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "x": 0,
+          "y": 160,
+          "w": 1600,
+          "h": 20
+        },
+        {
+          "x": 260,
+          "y": 132,
+          "w": 95,
+          "h": 8
+        },
+        {
+          "x": 560,
+          "y": 118,
+          "w": 90,
+          "h": 8
+        },
+        {
+          "x": 900,
+          "y": 136,
+          "w": 100,
+          "h": 8
+        }
+      ],
+      "crystals": [],
+      "tiles": [],
+      "enemies": [
+        {
+          "x": 180,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 142,
+          "right": 235,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 265,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 227,
+          "right": 320,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 350,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 312,
+          "right": 405,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 435,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 397,
+          "right": 490,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 520,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 482,
+          "right": 575,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 605,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 567,
+          "right": 660,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 690,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 652,
+          "right": 745,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 775,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 737,
+          "right": 830,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 860,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 822,
+          "right": 915,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 945,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 907,
+          "right": 1000,
+          "speed": 0.6,
+          "spawned": true,
+          "type": "merc",
+          "hp": 5,
+          "damage": 2
+        },
+        {
+          "x": 1100,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 1062,
+          "right": 1155,
+          "speed": 0.68,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 2
+        },
+        {
+          "x": 1185,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 1147,
+          "right": 1240,
+          "speed": 0.68,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 2
+        },
+        {
+          "x": 1270,
+          "y": 122,
+          "w": 18,
+          "h": 38,
+          "left": 1232,
+          "right": 1325,
+          "speed": 0.68,
+          "spawned": true,
+          "type": "hitman",
+          "hp": 4,
+          "damage": 2
+        },
+        {
+          "x": 1425,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 1387,
+          "right": 1480,
+          "speed": 0.35,
+          "spawned": true,
+          "type": "brute",
+          "hp": 10,
+          "damage": 2
+        },
+        {
+          "x": 1510,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 1472,
+          "right": 1565,
+          "speed": 0.35,
+          "spawned": true,
+          "type": "brute",
+          "hp": 10,
+          "damage": 2
+        },
+        {
+          "x": 1595,
+          "y": 122,
+          "w": 24,
+          "h": 42,
+          "left": 1557,
+          "right": 1570,
+          "speed": 0.35,
+          "spawned": true,
+          "type": "brute",
+          "hp": 10,
+          "damage": 2
+        },
+        {
+          "x": 1750,
+          "y": 122,
+          "w": 26,
+          "h": 44,
+          "left": 1712,
+          "right": 1570,
+          "speed": 0.7,
+          "spawned": true,
+          "type": "boss",
+          "hp": 18,
+          "damage": 3
+        }
+      ],
+      "npcs": [],
+      "triggers": [
+        {
+          "x": 80,
+          "y": 120,
+          "w": 32,
+          "h": 40,
+          "action": "checkpoint",
+          "target_room": -1,
+          "target_x": 0,
+          "target_y": 0,
+          "once": true
+        }
+      ],
+      "doors": [],
+      "teleports": [],
+      "pickups": [],
+      "particle_emitters": [
+        {
+          "type": "fire",
+          "x": 1120,
+          "y": 145,
+          "rate": 8,
+          "life": 30,
+          "speed": 0.8,
+          "spread": 0.8,
+          "gravity": -0.015,
+          "r": 255,
+          "g": 105,
+          "b": 35
+        }
+      ]
+    }
+  ]
+}
