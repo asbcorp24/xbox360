@@ -332,6 +332,10 @@ def cmd_set_background(a): _visual_layer(a,"background")
 def cmd_add_parallax(a): _visual_layer(a,"parallax")
 def cmd_add_foreground(a): _visual_layer(a,"foreground")
 
+def cmd_play(a):
+    from simulator import main as simulator_main
+    simulator_main(str(pp(a)))
+
 def cmd_build(a):
     cmd_generate(a)
     if a.docker:
@@ -378,6 +382,7 @@ def parser():
     q=s.add_parser("set-background"); add_visual_args(q,0.0); q.set_defaults(func=cmd_set_background)
     q=s.add_parser("add-parallax"); add_visual_args(q,0.25); q.set_defaults(func=cmd_add_parallax)
     q=s.add_parser("add-foreground"); add_visual_args(q,1.15); q.set_defaults(func=cmd_add_foreground)
+    q=s.add_parser("play"); q.set_defaults(func=cmd_play)
     q=s.add_parser("build"); q.add_argument("--docker",action="store_true"); q.set_defaults(func=cmd_build)
     return p
 
