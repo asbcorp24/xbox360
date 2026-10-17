@@ -265,9 +265,20 @@ class Simulator:
             e["_timer"]=e.get("_timer",0)+1
             if e["_timer"]>=max(1,int(e.get("rate",12))):
                 e["_timer"]=0
+                import random
                 typ=e.get("type","smoke")
-                colors={"smoke":"#b8b8b8","spark":"#ffd060","dust":"#b47c65","fire":"#ff7b32"}
-                self.particle_burst(e["x"],e["y"],typ,1,colors.get(typ,"#cccccc"))
+                speed=float(e.get("speed",.6)); spread=float(e.get("spread",1.0))
+                vx=(random.random()*2-1)*spread*speed
+                vy=-(.2+random.random()*speed)
+                if typ=="spark": vx*=1.8; vy*=1.6
+                elif typ=="dust": vy=-.15-random.random()*.25
+                elif typ=="fire": vy=-.4-random.random()*speed
+                color="#%02x%02x%02x"%(int(e.get("r",180))&255,int(e.get("g",180))&255,int(e.get("b",180))&255)
+                self.particles.append({
+                    "x":float(e["x"]),"y":float(e["y"]),"vx":vx,"vy":vy,
+                    "gravity":float(e.get("gravity",-.01)),"life":int(e.get("life",35)),
+                    "size":2 if typ=="smoke" else 1,"color":color,"room":self.room
+                })
         kept=[]
         for p in self.particles:
             if p["room"]!=self.room: continue
