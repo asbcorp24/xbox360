@@ -32,6 +32,10 @@ jobs:
           apt-get update
           apt-get install -y python3
 
+      - name: Check simulator syntax
+        run: |
+          python3 -m py_compile tools/simulator.py tools/xgm.py tools/scriptgen.py tools/rpggen.py tools/visualgen.py
+
       - name: Generate game data and assets
         run: |
           python3 tools/xgm.py validate
