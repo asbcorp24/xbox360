@@ -37,6 +37,8 @@ class Simulator:
         self.root.protocol("WM_DELETE_WINDOW", self.close)
 
         self.images = {}
+        self.sprite_images = {}
+        self.sprite_frames = {}
         self.load_images()
         self.reset()
 
@@ -60,6 +62,43 @@ class Simulator:
                 self.images[rel] = img
             except Exception as e:
                 print(f"[sim] PNG load failed: {rel}: {e}")
+
+        a=self.data.get("assets",{})
+        sprite_paths=[a.get("player_sprite"),a.get("npc_sprite")]
+        sprite_paths += list(a.get("enemy_sprites",{}).values())
+        for rel in [x for x in sprite_paths if x]:
+            try:
+                self.sprite_images[rel]=tk.PhotoImage(file=str(ROOT/rel))
+            except Exception as e:
+                print(f"[sim] sprite PNG load failed: {rel}: {e}")
+
+    def sprite_frame(self, rel, frame_w, frame_h, frame):
+        if not rel or rel not in self.sprite_images:
+            return None
+        src=self.sprite_images[rel]
+        cols=max(1,src.width()//frame_w)
+        rows=max(1,src.height()//frame_h)
+        count=max(1,cols*rows)
+        frame=max(0,min(frame,count-1))
+        key=(rel,frame_w,frame_h,frame,self.scale)
+        if key in self.sprite_frames:
+            return self.sprite_frames[key]
+        fx=(frame%cols)*frame_w
+        fy=(frame//cols)*frame_h
+        cropped=tk.PhotoImage(width=frame_w,height=frame_h)
+        cropped.tk.call(str(cropped),"copy",str(src),"-from",fx,fy,fx+frame_w,fy+frame_h,"-to",0,0)
+        if self.scale>1:
+            cropped=cropped.zoom(self.scale,self.scale)
+        self.sprite_frames[key]=cropped
+        return cropped
+
+    def draw_sprite(self, rel, frame_size, frame, x, y):
+        fw,fh=frame_size
+        img=self.sprite_frame(rel,fw,fh,frame)
+        if not img:
+            return False
+        self.canvas.create_image(self.sx(x),self.sy(y),image=img,anchor="nw")
+        return True
 
     def reset(self):
         self.rooms = copy.deepcopy(self.data.get("rooms", []))
@@ -610,21 +649,44 @@ class Simulator:
         for p in room["pickups"]:
             if not p.get("_collected"):
                 self.rect(p["x"],p["y"],6,6,"#e6be46")
+        assets=self.data.get("assets",{})
+        npc_rel=assets.get("npc_sprite")
+        npc_frame=assets.get("npc_frame_size",[16,16])
         for n in room["npcs"]:
-            self.rect(n["x"],n["y"],n.get("w",8),n.get("h",12),"#4f9cbe")
+            nx=n["x"]+(n.get("w",8)-npc_frame[0])/2
+            ny=n["y"]+n.get("h",12)-npc_frame[1]
+            if not self.draw_sprite(npc_rel,npc_frame,0,nx,ny):
+                self.rect(n["x"],n["y"],n.get("w",8),n.get("h",12),"#4f9cbe")
         for d in room["doors"]:
             self.rect(d["x"],d["y"],d.get("w",12),d.get("h",20),"#615074")
+        enemy_map=assets.get("enemy_sprites",{})
+        enemy_frame=assets.get("enemy_frame_size",[16,16])
         for e in room["enemies"]:
             if e.get("_alive"):
-                color={"walker":"#ee5d5d","charger":"#f58b45","tank":"#9d496f"}.get(e.get("type"),"#ee5d5d")
-                self.rect(e["x"],e["y"],e.get("w",8),e.get("h",8),color)
+                rel=enemy_map.get(e.get("type","walker"))
+                frame=(int(time.time()*8)%4)
+                ex=e["x"]+(e.get("w",8)-enemy_frame[0])/2
+                ey=e["y"]+e.get("h",8)-enemy_frame[1]
+                if not self.draw_sprite(rel,enemy_frame,frame,ex,ey):
+                    color={"walker":"#ee5d5d","charger":"#f58b45","tank":"#9d496f"}.get(e.get("type"),"#ee5d5d")
+                    self.rect(e["x"],e["y"],e.get("w",8),e.get("h",8),color)
         for p in self.projectiles:
             if p["room"]==self.room: self.rect(p["x"],p["y"],3,1,"#ffe078")
         for p in self.particles:
             if p["room"]==self.room: self.rect(p["x"],p["y"],p.get("size",1),p.get("size",1),p.get("color","#cccccc"))
 
         player_color="#ffc489" if not self.invuln or (self.invuln//4)%2==0 else "#ffffff"
-        self.rect(self.x,self.y,self.w,self.h,player_color)
+        player_rel=assets.get("player_sprite")
+        player_frame=assets.get("player_frame_size",[8,12])
+        pf=0
+        if self.attack_frames and 6>4: pf=4
+        elif self.fire_cd and self.fire_cd<=3: pf=5
+        elif not self.on_ground: pf=3
+        elif abs(self.vx)>.15: pf=1+(int(time.time()*8)&1)
+        px=self.x+(self.w-player_frame[0])/2
+        py=self.y+self.h-player_frame[1]
+        if not self.draw_sprite(player_rel,player_frame,pf,px,py):
+            self.rect(self.x,self.y,self.w,self.h,player_color)
         if self.attack_frames:
             ax=self.x+self.w if self.facing>0 else self.x-12
             self.rect(ax,self.y+2,12,self.h-2,"#f5e6b4")
