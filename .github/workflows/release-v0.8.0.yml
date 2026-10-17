@@ -1,0 +1,80 @@
+name: First Release v0.8.0
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Release v0.8.0'
+    runs-on: ubuntu-latest
+    container:
+      image: free60/libxenon:latest
+    env:
+      DEVKITXENON: /usr/local/xenon
+      PATH: /usr/local/xenon/bin:/usr/local/xenon/usr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Python
+        run: |
+          apt-get update
+          apt-get install -y python3
+
+      - name: Check Python tools
+        run: |
+          python3 -m py_compile tools/simulator.py tools/xgm.py tools/scriptgen.py tools/rpggen.py tools/visualgen.py
+
+      - name: Generate PNG showcase
+        run: |
+          python3 tools/xgm.py --project demos/png_showcase/game.json validate
+          python3 tools/xgm.py --project demos/png_showcase/game.json generate
+
+      - name: Build
+        run: make
+
+      - name: Verify
+        run: |
+          test -f xbox360-pixel.elf
+          test -f xbox360-pixel.elf32
+          ls -lh xbox360-pixel.elf xbox360-pixel.elf32
+
+      - name: Create v0.8.0 release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.8.0
+          target_commitish: main
+          name: Xbox360 Game Maker v0.8.0 - PNG Showcase
+          body: |
+            PNG visual showcase release.
+
+            Includes:
+            - animated 6-frame player PNG sprite sheet
+            - animated walker PNG sprite sheet
+            - animated charger PNG sprite sheet
+            - animated tank PNG sprite sheet
+            - PNG NPC
+            - PNG sky background
+            - PNG mountain far-parallax
+            - PNG city near-parallax
+            - PNG foreground fence
+            - Camera2D and screen-fixed HUD
+            - shooting, ammo and melee
+            - particles and scripted particle bursts
+            - inventory, keys, doors, triggers and teleports
+            - branching dialogue
+            - matching Windows Simulator PNG rendering
+
+            Windows preview:
+              showcase-play.bat
+
+            Xbox build:
+              showcase-build.bat
+          files: |
+            xbox360-pixel.elf
+            xbox360-pixel.elf32
