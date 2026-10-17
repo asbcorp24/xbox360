@@ -610,6 +610,71 @@ The Xbox runtime uses fixed pools (32 projectiles and 128 particles) to avoid pe
 
 
 
+
+
+## Game flow: boot, title, pause, game over, ending and credits
+
+Projects can define a complete game lifecycle through the optional `flow` section:
+
+```json
+{
+  "flow": {
+    "boot_frames": 90,
+    "boot_image": "assets/showcase/ui/boot.png",
+    "title_image": "assets/showcase/ui/title.png",
+    "title": "NEON DISTRICT",
+    "subtitle": "PRESS A / START",
+    "game_over": "GAME OVER",
+    "ending": "MISSION COMPLETE",
+    "credits": "XGM PNG SHOWCASE  OPEN HOMEBREW"
+  }
+}
+```
+
+The runtime state machine is:
+
+```text
+BOOT
+  -> TITLE
+  -> GAME
+      -> PAUSE
+      -> GAME OVER
+      -> ENDING
+          -> CREDITS
+              -> TITLE
+```
+
+Xbox 360 flow controls:
+
+```text
+BOOT / TITLE     A or Start
+GAME             Start = pause
+PAUSE            Start/A = resume, B = title
+GAME OVER        A = retry, B = title
+ENDING           A/Start = credits
+CREDITS          A/B/Start = title
+```
+
+Windows Simulator flow controls:
+
+```text
+BOOT / TITLE     Space / Enter
+GAME             P = pause
+PAUSE            P/Space/Enter = resume, B = title
+GAME OVER        Space/Enter = retry, B = title
+ENDING           Space/Enter = credits
+CREDITS          Space/Enter/B = title
+```
+
+The PNG showcase includes 320x180 boot/title artwork under:
+
+```text
+assets/showcase/ui/boot.png
+assets/showcase/ui/title.png
+```
+
+If a project does not define the optional flow images, the runtime uses text/fallback screens and remains compatible with older projects.
+
 ## PNG showcase demo
 
 A separate visual showcase uses real PNG sprite sheets and layered PNG backgrounds:
