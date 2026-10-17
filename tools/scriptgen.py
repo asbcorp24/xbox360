@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 EVENTS = {"on_enter":1,"on_interact":2,"on_collect":3}
-CMDS = {"set_flag":1,"set_var":2,"add_var":3,"open_door":4,"spawn_enemy":5,"change_room":6,"dialog":7}
+CMDS = {"set_flag":1,"set_var":2,"add_var":3,"open_door":4,"spawn_enemy":5,"change_room":6,"dialog":7,"emit_particles":8}
 COND = {None:0,"flag":1,"var":2}
 OPS = {"eq":0,"ne":1,"gt":2,"lt":3,"ge":4,"le":5}
 
