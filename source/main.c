@@ -142,7 +142,7 @@ static void draw_scene(const player_t *p, int facing, int collected, int won) {
     draw_rect(0, 0, VW, VH, sky);
 
     /* distant stars */
-    static const uint8_t stars[][2] = {
+    static const uint16_t stars[][2] = {
         {12,18},{39,31},{71,14},{101,38},{139,20},{173,29},
         {205,12},{238,35},{270,18},{305,42},{24,74},{88,61},
         {154,56},{257,65},{294,82}
@@ -249,7 +249,6 @@ int main(void) {
     xenos_init(VIDEO_MODE_AUTO);
     console_init();
 
-    kmem_init();
     usb_init();
     usb_do_poll();
 
