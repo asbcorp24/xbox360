@@ -7,3 +7,4 @@ build/
 
 source/generated_game.h
 source/generated_assets.h
+source/generated_scripts.h
