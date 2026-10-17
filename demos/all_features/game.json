@@ -244,6 +244,13 @@
         {
           "cmd": "dialog",
           "text": "ROOM 4: Long camera test. Reach the exit."
+        },
+        {
+          "cmd": "emit_particles",
+          "name": "spark",
+          "value": 18,
+          "x": 430,
+          "y": 118
         }
       ]
     }
