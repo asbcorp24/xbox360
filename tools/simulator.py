@@ -64,7 +64,7 @@ class Simulator:
     def reset(self):
         self.rooms = copy.deepcopy(self.data.get("rooms", []))
         for room in self.rooms:
-            for k in ("platforms","crystals","tiles","enemies","npcs","triggers","doors","teleports","pickups"):
+            for k in ("platforms","crystals","tiles","enemies","npcs","triggers","doors","teleports","pickups","particle_emitters"):
                 room.setdefault(k, [])
             for e in room["enemies"]:
                 e.setdefault("spawned", True)
@@ -75,6 +75,8 @@ class Simulator:
                 c["_collected"] = False
             for p in room["pickups"]:
                 p["_collected"] = False
+            for pe in room["particle_emitters"]:
+                pe["_timer"] = 0
 
         p = self.data.get("player", {})
         self.room = int(p.get("start_room", 0))
@@ -90,6 +92,9 @@ class Simulator:
         self.invuln = 0
         self.attack_cd = 0
         self.attack_frames = 0
+        self.fire_cd = 0
+        self.projectiles = []
+        self.particles = []
         self.camera_x = 0.0
         self.inventory = {x["name"]: int(x.get("count",0)) for x in self.data.get("items",[])}
         self.flags = copy.deepcopy(self.data.get("flags",{}))
@@ -189,6 +194,86 @@ class Simulator:
                     e["_alive"] = False
                 else:
                     e["_dir"] *= -1
+
+    def active_gun(self):
+        guns=[x for x in self.data.get("items",[]) if x.get("kind")=="ranged" and self.inventory.get(x["name"],0)>0]
+        return max(guns,key=lambda x:int(x.get("power",0))) if guns else None
+
+    def particle_burst(self,x,y,kind="spark",count=6,color="#ffb050"):
+        import random
+        for _ in range(count):
+            vx=(random.random()*2-1)*(1.8 if kind=="spark" else .8)
+            vy=-(.2+random.random()*(1.5 if kind=="fire" else 1.0))
+            gravity=-.005 if kind=="smoke" else (.08 if kind=="spark" else .035)
+            self.particles.append({"x":x,"y":y,"vx":vx,"vy":vy,"gravity":gravity,"life":20,"size":2 if kind=="smoke" else 1,"color":color,"room":self.room})
+
+    def shoot(self):
+        if self.fire_cd:
+            return
+        gun=self.active_gun()
+        if not gun:
+            return
+        ammo=gun.get("ammo")
+        if not ammo or self.inventory.get(ammo,0)<=0:
+            self.message="Out of ammo"
+            self.fire_cd=8
+            return
+        self.inventory[ammo]-=1
+        speed=float(gun.get("projectile_speed",5.0))
+        self.projectiles.append({
+            "x":self.x+(self.w+2 if self.facing>0 else -3),
+            "y":self.y+self.h/2,
+            "vx":speed*(1 if self.facing>0 else -1),
+            "life":int(gun.get("projectile_life",70)),
+            "damage":int(gun.get("power",1)),
+            "room":self.room
+        })
+        self.fire_cd=max(1,int(gun.get("fire_rate",10)))
+        self.particle_burst(self.projectiles[-1]["x"],self.projectiles[-1]["y"],"fire",5,"#ffd060")
+
+    def point_hits_solid(self,x,y):
+        for sx,sy,sw,sh in self.solids():
+            if sx<=x<sx+sw and sy<=y<sy+sh:
+                return True
+        return False
+
+    def update_projectiles(self):
+        kept=[]
+        for p in self.projectiles:
+            if p["room"]!=self.room:
+                continue
+            p["x"]+=p["vx"]; p["life"]-=1
+            if p["life"]<=0 or p["x"]<0 or p["x"]>self.world_width() or self.point_hits_solid(p["x"],p["y"]):
+                self.particle_burst(p["x"],p["y"],"spark",4,"#f0b040")
+                continue
+            hit=False
+            for e in self.room_data()["enemies"]:
+                if not e.get("_alive"): continue
+                if self.overlap(p["x"],p["y"],2,2,e["x"],e["y"],e.get("w",8),e.get("h",8)):
+                    e["_hp"]-=p["damage"]; hit=True
+                    self.particle_burst(p["x"],p["y"],"spark",7,"#ff9f45")
+                    if e["_hp"]<=0:
+                        e["_alive"]=False
+                        self.particle_burst(e["x"],e["y"],"dust",14,"#c34d55")
+                    break
+            if not hit: kept.append(p)
+        self.projectiles=kept
+
+    def update_particles(self):
+        import random
+        for e in self.room_data().get("particle_emitters",[]):
+            e["_timer"]=e.get("_timer",0)+1
+            if e["_timer"]>=max(1,int(e.get("rate",12))):
+                e["_timer"]=0
+                typ=e.get("type","smoke")
+                colors={"smoke":"#b8b8b8","spark":"#ffd060","dust":"#b47c65","fire":"#ff7b32"}
+                self.particle_burst(e["x"],e["y"],typ,1,colors.get(typ,"#cccccc"))
+        kept=[]
+        for p in self.particles:
+            if p["room"]!=self.room: continue
+            p["x"]+=p["vx"];p["y"]+=p["vy"];p["vy"]+=p["gravity"];p["life"]-=1
+            if p["life"]>0: kept.append(p)
+        self.particles=kept
 
     def use_consumable(self):
         for item in self.data.get("items",[]):
@@ -404,6 +489,8 @@ class Simulator:
                 self.on_ground=False
             if "x" in self.just_pressed:
                 self.attack()
+            if "c" in self.keys or "control_r" in self.keys:
+                self.shoot()
             if "y" in self.just_pressed:
                 self.use_consumable()
             if "e" in self.just_pressed or "return" in self.just_pressed:
@@ -431,6 +518,8 @@ class Simulator:
                 self.respawn()
 
             self.update_enemies()
+            self.update_projectiles()
+            self.update_particles()
             self.update_pickups()
             self.process_triggers()
             self.process_teleports()
@@ -439,6 +528,7 @@ class Simulator:
         if self.invuln: self.invuln-=1
         if self.attack_cd: self.attack_cd-=1
         if self.attack_frames: self.attack_frames-=1
+        if self.fire_cd: self.fire_cd-=1
         self.update_camera()
         self.draw()
         self.just_pressed.clear()
@@ -509,6 +599,10 @@ class Simulator:
             if e.get("_alive"):
                 color={"walker":"#ee5d5d","charger":"#f58b45","tank":"#9d496f"}.get(e.get("type"),"#ee5d5d")
                 self.rect(e["x"],e["y"],e.get("w",8),e.get("h",8),color)
+        for p in self.projectiles:
+            if p["room"]==self.room: self.rect(p["x"],p["y"],3,1,"#ffe078")
+        for p in self.particles:
+            if p["room"]==self.room: self.rect(p["x"],p["y"],p.get("size",1),p.get("size",1),p.get("color","#cccccc"))
 
         player_color="#ffc489" if not self.invuln or (self.invuln//4)%2==0 else "#ffffff"
         self.rect(self.x,self.y,self.w,self.h,player_color)
@@ -527,7 +621,7 @@ class Simulator:
         self.canvas.create_rectangle(18,18,18+hpw,24,fill="#dc4848",outline="")
         inv=", ".join(f"{k}:{v}" for k,v in self.inventory.items() if v>0)
         self.canvas.create_text(12,36,anchor="nw",fill="white",text=f"Room {self.room}  HP {self.hp}/{self.max_hp}  {inv}",font=("Consolas",10))
-        self.canvas.create_text(12,self.vh*self.scale-22,anchor="nw",fill="#d0d0d0",text="A/D move  SPACE jump  X attack  Y item  E interact  R reset  ESC quit",font=("Consolas",9))
+        self.canvas.create_text(12,self.vh*self.scale-22,anchor="nw",fill="#d0d0d0",text="A/D move  SPACE jump  X melee  C/RightCtrl shoot  Y item  E interact  R reset  ESC quit",font=("Consolas",9))
 
         if self.message:
             self.canvas.create_rectangle(120,60,840,120,fill="#f5f0dc",outline="#302c3e")
